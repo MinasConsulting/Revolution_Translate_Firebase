@@ -14,6 +14,8 @@ jobs:
       - name: Install dependencies
         working-directory: ./ui
         run: npm install
+      - name: Decrypt firebaseSecret.json
+        run: echo "${{ secrets.FIREBASE_SECRET }}" | base64 --decode > ./src/.secrets/firebaseSecret.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
