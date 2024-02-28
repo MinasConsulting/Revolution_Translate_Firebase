@@ -6,15 +6,7 @@ import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy,
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-// const firebaseConfig = {
-//   apiKey: "AIzaSyAUxTiEjQ6jVZX8d0jwQZB0AkR9nVAcd0M",
-//   authDomain: "revolutiontranslate.firebaseapp.com",
-//   projectId: "revolutiontranslate",
-//   storageBucket: "revolutiontranslate.appspot.com",
-//   messagingSenderId: "15975307749",
-//   appId: "1:15975307749:web:0743b4cacf6b62648bb70c",
-//   measurementId: "G-VDNCHQJ8JT"
-// }
+
 
 import firebaseConfig from '../.secrets/firebaseSecret.json'
 
