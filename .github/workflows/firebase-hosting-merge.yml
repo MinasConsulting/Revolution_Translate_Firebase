@@ -16,10 +16,8 @@ jobs:
         run: npm install
       - name: Decrypt firebaseSecret.json
         run: |
-          ls
-          mkdir -p ./src/.secrets
-          echo "${{ secrets.FIREBASE_SECRET }}" > ./src/.secrets/firebaseSecret.json
-          ls
+          mkdir -p ./ui/src/.secrets
+          echo "${{ secrets.FIREBASE_SECRET }}" > ./ui/src/.secrets/firebaseSecret.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
