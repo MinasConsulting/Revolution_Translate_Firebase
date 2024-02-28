@@ -29,5 +29,16 @@
     "pubsub": {
       "port": 8085
     }
+  },
+  "hosting": {
+    "source": "ui",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1"
+    }
   }
 }
