@@ -31,7 +31,13 @@
 		const tag = document.createElement('script');
 		tag.src = `https://www.youtube.com/iframe_api`; // YouTube iframe API script
 		const firstScriptTag = document.getElementsByTagName('script')[0];
-		firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            if (firstScriptTag) {
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            } else {
+                // If no script tags are found, append to the head instead
+                document.head.appendChild(tag);
+            }
+
 
 		window.onYouTubeIframeAPIReady = () => {
 		player = new YT.Player('player', {
