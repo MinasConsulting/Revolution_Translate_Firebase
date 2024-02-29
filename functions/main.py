@@ -35,8 +35,6 @@ def sunTranscriptGen(context) -> None:
 
 
 
-
-
 def _transcriptGen(context) -> None:
 
     if os.environ.get('FUNCTIONS_EMULATOR', False) == 'true':
@@ -47,7 +45,6 @@ def _transcriptGen(context) -> None:
         os.chdir('/tmp')
 
     print("function started")
-
     s3Client = boto3.client('s3',
                             aws_access_key_id=os.environ['AWSKEY'],
                             aws_secret_access_key=os.environ['AWSSECRET'])
@@ -169,7 +166,8 @@ def _transcriptGen(context) -> None:
                 'endTime':'',
                 'genTime':'',
                 'text':'',
-                'genUser':''}
+                'genUser':'',
+                'currentEdit':True}
     
     for line in srtLines:
         if counter == 0:
@@ -196,5 +194,3 @@ def _transcriptGen(context) -> None:
             batch.set(doc_ref,dataDict.copy())
 
     batch.commit()
-
-
