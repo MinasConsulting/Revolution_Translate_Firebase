@@ -80,29 +80,31 @@
 
     if (transcriptLine) {
         const transcriptBox = document.querySelector('.transcript-box');
-        const transcriptLineElement = transcriptBox.querySelector(`li[data-start-sec="${transcriptLine.startSec}"]`); // Select transcript line element
-		const scrollLineElement = transcriptBox.querySelector(`li[data-start-sec="${scrollLine.startSec}"]`); // Select transcript line element
+		if (transcriptBox) {
+			const transcriptLineElement = transcriptBox.querySelector(`li[data-start-sec="${transcriptLine.startSec}"]`); // Select transcript line element
+			const scrollLineElement = transcriptBox.querySelector(`li[data-start-sec="${scrollLine.startSec}"]`); // Select transcript line element
 
-        if (transcriptLineElement) {
-			// Apply highlighting to the current line
-			transcriptLineElement.style.backgroundColor = 'yellow';
+			if (transcriptLineElement) {
+				// Apply highlighting to the current line
+				transcriptLineElement.style.backgroundColor = 'yellow';
 
-			const transcriptBox = document.querySelector('.transcript-box');
-			const scrollTop = transcriptBox.scrollTop; // Current scroll position
-			const targetTop = scrollLineElement.offsetTop; // Top position of the target element
-			const scrollDistance = Math.abs(targetTop - scrollTop); // Distance to scroll
+				const transcriptBox = document.querySelector('.transcript-box');
+				const scrollTop = transcriptBox.scrollTop; // Current scroll position
+				const targetTop = scrollLineElement.offsetTop; // Top position of the target element
+				const scrollDistance = Math.abs(targetTop - scrollTop); // Distance to scroll
 
-			if (scrollDistance > 500){
-				scrollLineElement.scrollIntoView({
-				behavior: 'auto'
-				}) // Scroll to the line
+				if (scrollDistance > 500){
+					scrollLineElement.scrollIntoView({
+					behavior: 'auto'
+					}) // Scroll to the line
+				}
+				else {
+					scrollLineElement.scrollIntoView({
+					behavior: 'smooth'
+					}) // Scroll to the line
+				}
 			}
-			else {
-				scrollLineElement.scrollIntoView({
-				behavior: 'smooth'
-				}) // Scroll to the line
-			}
-        }
+		}
     }
 }
   }
