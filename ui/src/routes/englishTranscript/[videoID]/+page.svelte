@@ -128,6 +128,7 @@
 	}
 
 async function handleEditComplete(event) {
+	player.seekTo(parseFloat(event.target.dataset.startSec))
 	player.playVideo();
 	console.log(event)
 	// Access the modified text
@@ -163,7 +164,7 @@ async function handleEditComplete(event) {
             {#each transcript as line (line.startSec)}
 			<li data-start-sec={line.startSec}> 
 				<div class="startTime-box">{line.startTime}</div> 
-				<span contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID}> {line.text} </span>
+				<span contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec}> {line.text} </span>
 			</li>
             {/each}
         </ul>
