@@ -33,6 +33,117 @@ def sunTranscriptGen(context) -> None:
     _transcriptGen(context)
 
 
+# @scheduler_fn.on_schedule(schedule="every sunday 23:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
+@scheduler_fn.on_schedule(schedule="every monday 8:19",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
+def awsScript(context) -> None:
+
+    videoID = 'tatuomfLN2c'
+
+    api_service_name = "youtube"
+    api_version = "v3"
+    DEVELOPER_KEY = os.environ['YOUTUBEKEY']
+
+    # API client
+    youtube = googleapiclient.discovery.build(
+            api_service_name, api_version, developerKey = DEVELOPER_KEY)
+
+    print("Executing Video Overried with id "+ videoID)
+    request = youtube.videos().list(
+        part="snippet",
+        id=videoID,
+    )
+
+    response = request.execute()
+
+    publishedTime = response['items'][0]['snippet']['publishedAt']
+    title = response['items'][0]['snippet']['title']
+
+    jobName = videoID+"-"+str(int(time.time()))
+    # jobName = '0gbhuya2-XU-1708218034'
+    print(f"Transcribe Job Name: {jobName}")
+
+    transcribeClient = boto3.client('transcribe',
+                                    aws_access_key_id=os.environ['AWSKEY'],
+                                    aws_secret_access_key=os.environ['AWSSECRET'],
+                                    region_name='us-west-2')
+
+
+    response = transcribeClient.start_transcription_job(TranscriptionJobName=jobName,
+                                                        Media={'MediaFileUri':f's3://revolution-church-transcribe/AudioUploads/{videoID}.mp3'},
+                                                        LanguageCode = 'en-US',
+                                                        Subtitles={'Formats':['srt']})
+    
+    status = "IN_PROGRESS"
+    while status not in ["COMPLETED", "FAILED"]:
+        response = transcribeClient.get_transcription_job(TranscriptionJobName=jobName)
+        status = response["TranscriptionJob"]["TranscriptionJobStatus"]
+        print(f"Job status: {status}")
+        time.sleep(5)  # Adjust sleep time as needed
+    
+    downloadLink = response['TranscriptionJob']['Subtitles']['SubtitleFileUris'][0]
+    requestsGet = requests.get(downloadLink)
+    rawSRT = requestsGet.text
+
+    srtLines = rawSRT.split('\n')
+
+    maxSrid = int(srtLines[-3])
+
+    print(maxSrid)
+
+    # replace with videoID
+    # videoID = '0gbhuya2-XU'
+    doc_ref = db.collection("messageVideos").document(videoID)
+
+    doc_ref.set({
+        
+            'videoName':title,
+             
+             'publishTime':publishedTime,
+             'videoType':'livestream',
+            #  'videoLength':5700,
+            #  'generatedItag':151,
+             'maxSRTID':maxSrid
+            #  'messageStartSRTID':169,
+            # 'messageEndSRTID':1064})
+    })
+
+    batch = db.batch()
+
+    counter = 0
+    dataDict = {'SRTID':0,
+                'startTime':'',
+                'endTime':'',
+                'genTime':'',
+                'text':'',
+                'genUser':'',
+                'currentEdit':True}
+    
+    for line in srtLines:
+        if counter == 0:
+            SRTID = int(line.strip())
+            dataDict['SRTID'] = SRTID
+            counter += 1
+            
+        elif counter == 1:
+            timeSplit = line.split(' --> ')
+            dataDict['startTime'] = timeSplit[0].strip()
+            dataDict['endTime'] = timeSplit[1].strip()
+            counter += 1
+            
+        elif counter == 2:
+            dataDict['text'] = line.strip()
+            counter += 1
+            
+        elif counter == 3:
+            dataDict['genTime'] = datetime.now()
+            dataDict['genUser'] = 'AWS Transcribe'
+            counter = 0
+
+            doc_ref = db.collection("messageVideos").document(videoID).collection("englishTranscript").document()
+            batch.set(doc_ref,dataDict.copy())
+
+    batch.commit()
+    
 
 
 def _transcriptGen(context) -> None:
