@@ -1,6 +1,6 @@
 <script>
 	import { page } from '$app/stores';
-	import { getTranscript, saveChange } from "../../../utils/fire.js"
+	import { getTranscript, saveChange, getTranslation } from "../../../utils/fire.js"
 	import { onDestroy, onMount } from 'svelte';
 
 
@@ -152,11 +152,19 @@ async function handleEditComplete(event) {
 </script>
 
 <h1>English Transcript for Video {videoID}</h1>
+<menu>
+	<button on:click={() => getTranslation(videoID)}>Translate</button>
+	<label for="textView">Choose a view:</label>
+	<select name="textView" id="textView">
+		<option value="English Only">English Only</option>
+		<option value="Spanish Only">Spanish Only</option>
+		<option value="Combined">Combined</option>
+	  </select>
 
+</menu>
 <div class="video-container">
 	<div id="player"></div>
 </div>
-
 
 <div class="transcript-box">
 	{#if transcript}

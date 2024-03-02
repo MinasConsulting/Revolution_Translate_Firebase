@@ -21,8 +21,18 @@ db = firestore.client()
 
 deeplTrans = deepl.Translator(os.environ['DEEPLKEY'])
 
-# @https_fn.on_call()
-@https_fn.on_request()
+# @https_fn.on_call(
+#     cors=options.CorsOptions(
+#         cors_origins="http://localhost:5173",  # Adjust to your specific origins
+#         cors_methods=["POST"],  # Specify allowed methods
+#     )
+# )
+@https_fn.on_request(
+            cors=options.CorsOptions(
+        cors_origins="http://localhost:5173",  # Adjust to your specific origins
+        cors_methods=["POST"],  # Specify allowed methods
+    )
+)
 def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
 
     # Check if the request method is POST
@@ -32,6 +42,7 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     # Parse the JSON data from the request body
     try:
         data = json.loads(req.data)
+        data = data['data']
         print(data)
     except Exception as e:
         return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
@@ -44,9 +55,9 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
 
     result = deeplTrans.translate_text(deepLEnglish,source_lang='EN',target_lang='ES',split_sentences='nonewlines',tag_handling='html',formality='less')
 
-
+    response = json.dumps({"data":{"spanishText":result.text}})
     # Return a response
-    return https_fn.Response(result.text, status=200)
+    return https_fn.Response(response, status=200)
 
 # @scheduler_fn.on_schedule(schedule="every wednesday 22:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
 # def wedTranscriptGen(context) -> None:

@@ -1,6 +1,8 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy, query, where } from "firebase/firestore"
+// import { Translator } from 'deepl-node';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -9,11 +11,17 @@ import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy,
 
 
 import firebaseConfig from '../.secrets/firebaseSecret.json'
+import otherSecrets from '../.secrets/otherSecrets.json'
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 const db = getFirestore(app)
+
+const functions = getFunctions(app);
+const deepLTranslate = httpsCallable(functions, 'deepLTranslate');
+
+// const translator = new Translator(otherSecrets.deepL);
 
 export async function getVideos() {
     const videoInfo = new Map();
@@ -107,6 +115,49 @@ export async function saveChange(event,videoID) {
     return newDocID.id
 
 }
+
+export async function getTranslation(videoID) {
+  const result = await deepLTranslate({"englishText":"My name is Evan"})
+  console.log(result)
+
+}
+
+async function deepLExecute(deepLEnglish) {
+  const apiKey = otherSecrets.deepL
+  const apiUrl = 'https://api.deepl.com/v2/translate';
+
+  const requestData = {
+      auth_key: apiKey,
+      text: deepLEnglish,
+      source_lang: 'EN',
+      target_lang: 'ES',
+      split_sentences: 'nonewlines',
+      tag_handling: 'html',
+      formality: 'less'
+  };
+
+  try {
+      const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      return responseData.translations[0].text;
+  } catch (error) {
+      console.error('Error:', error);
+      // Handle error appropriately
+      return null;
+  }
+}
+
 
 function stampToSec(stamp) {
     const components = stamp.split(",")

@@ -16,7 +16,6 @@
 	"type": "module",
 	"dependencies": {
 		"@sveltejs/kit": "^2.5.2",
-		"firebase": "^10.8.0",
-		"node": "^21.6.2"
+		"firebase": "^10.8.0"
 	}
 }
