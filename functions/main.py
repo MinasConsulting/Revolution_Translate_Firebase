@@ -1,5 +1,5 @@
 # The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
-from firebase_functions import firestore_fn, https_fn
+from firebase_functions import firestore_fn, https_fn, options
 from firebase_functions import scheduler_fn
 
 # The Firebase Admin SDK to access Cloud Firestore.
@@ -13,136 +13,165 @@ import requests
 import time
 from datetime import datetime
 from datetime import timedelta
-
+import deepl
+import json
 
 app = initialize_app()
 db = firestore.client()
 
+deeplTrans = deepl.Translator(os.environ['DEEPLKEY'])
 
-@scheduler_fn.on_schedule(schedule="every wednesday 22:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
-def wedTranscriptGen(context) -> None:
-    _transcriptGen(context)
+# @https_fn.on_call()
+@https_fn.on_request()
+def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
 
-@scheduler_fn.on_schedule(schedule="every saturday 20:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
-def satTranscriptGen(context) -> None:
-    _transcriptGen(context)
+    # Check if the request method is POST
+    if req.method != "POST":
+        return https_fn.Response("Method not allowed", status=405)
 
-# @scheduler_fn.on_schedule(schedule="every sunday 23:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
-@scheduler_fn.on_schedule(schedule="every monday 8:19",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
-def sunTranscriptGen(context) -> None:
-    _transcriptGen(context)
+    # Parse the JSON data from the request body
+    try:
+        data = json.loads(req.data)
+        print(data)
+    except Exception as e:
+        return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
 
-
-# @scheduler_fn.on_schedule(schedule="every sunday 23:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
-@scheduler_fn.on_schedule(schedule="every monday 8:19",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
-def awsScript(context) -> None:
-
-    videoID = 'tatuomfLN2c'
-
-    api_service_name = "youtube"
-    api_version = "v3"
-    DEVELOPER_KEY = os.environ['YOUTUBEKEY']
-
-    # API client
-    youtube = googleapiclient.discovery.build(
-            api_service_name, api_version, developerKey = DEVELOPER_KEY)
-
-    print("Executing Video Overried with id "+ videoID)
-    request = youtube.videos().list(
-        part="snippet",
-        id=videoID,
-    )
-
-    response = request.execute()
-
-    publishedTime = response['items'][0]['snippet']['publishedAt']
-    title = response['items'][0]['snippet']['title']
-
-    jobName = videoID+"-"+str(int(time.time()))
-    # jobName = '0gbhuya2-XU-1708218034'
-    print(f"Transcribe Job Name: {jobName}")
-
-    transcribeClient = boto3.client('transcribe',
-                                    aws_access_key_id=os.environ['AWSKEY'],
-                                    aws_secret_access_key=os.environ['AWSSECRET'],
-                                    region_name='us-west-2')
-
-
-    response = transcribeClient.start_transcription_job(TranscriptionJobName=jobName,
-                                                        Media={'MediaFileUri':f's3://revolution-church-transcribe/AudioUploads/{videoID}.mp3'},
-                                                        LanguageCode = 'en-US',
-                                                        Subtitles={'Formats':['srt']})
+    # Access the data from the request body
+    if 'englishText' not in data:
+        return https_fn.Response("Missing 'englishText' in request body", status=400)
     
-    status = "IN_PROGRESS"
-    while status not in ["COMPLETED", "FAILED"]:
-        response = transcribeClient.get_transcription_job(TranscriptionJobName=jobName)
-        status = response["TranscriptionJob"]["TranscriptionJobStatus"]
-        print(f"Job status: {status}")
-        time.sleep(5)  # Adjust sleep time as needed
+    deepLEnglish = data['englishText']
+
+    result = deeplTrans.translate_text(deepLEnglish,source_lang='EN',target_lang='ES',split_sentences='nonewlines',tag_handling='html',formality='less')
+
+
+    # Return a response
+    return https_fn.Response(result.text, status=200)
+
+# @scheduler_fn.on_schedule(schedule="every wednesday 22:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
+# def wedTranscriptGen(context) -> None:
+#     _transcriptGen(context)
+
+# @scheduler_fn.on_schedule(schedule="every saturday 20:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
+# def satTranscriptGen(context) -> None:
+#     _transcriptGen(context)
+
+# # @scheduler_fn.on_schedule(schedule="every sunday 23:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
+# @scheduler_fn.on_schedule(schedule="every monday 8:19",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
+# def sunTranscriptGen(context) -> None:
+#     _transcriptGen(context)
+
+
+# # @scheduler_fn.on_schedule(schedule="every sunday 23:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
+# @scheduler_fn.on_schedule(schedule="every monday 8:19",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
+# # def awsScript(context) -> None:
+
+#     videoID = 'tatuomfLN2c'
+
+#     api_service_name = "youtube"
+#     api_version = "v3"
+#     DEVELOPER_KEY = os.environ['YOUTUBEKEY']
+
+#     # API client
+#     youtube = googleapiclient.discovery.build(
+#             api_service_name, api_version, developerKey = DEVELOPER_KEY)
+
+#     print("Executing Video Overried with id "+ videoID)
+#     request = youtube.videos().list(
+#         part="snippet",
+#         id=videoID,
+#     )
+
+#     response = request.execute()
+
+#     publishedTime = response['items'][0]['snippet']['publishedAt']
+#     title = response['items'][0]['snippet']['title']
+
+#     jobName = videoID+"-"+str(int(time.time()))
+#     # jobName = '0gbhuya2-XU-1708218034'
+#     print(f"Transcribe Job Name: {jobName}")
+
+#     transcribeClient = boto3.client('transcribe',
+#                                     aws_access_key_id=os.environ['AWSKEY'],
+#                                     aws_secret_access_key=os.environ['AWSSECRET'],
+#                                     region_name='us-west-2')
+
+
+#     response = transcribeClient.start_transcription_job(TranscriptionJobName=jobName,
+#                                                         Media={'MediaFileUri':f's3://revolution-church-transcribe/AudioUploads/{videoID}.mp3'},
+#                                                         LanguageCode = 'en-US',
+#                                                         Subtitles={'Formats':['srt']})
     
-    downloadLink = response['TranscriptionJob']['Subtitles']['SubtitleFileUris'][0]
-    requestsGet = requests.get(downloadLink)
-    rawSRT = requestsGet.text
+#     status = "IN_PROGRESS"
+#     while status not in ["COMPLETED", "FAILED"]:
+#         response = transcribeClient.get_transcription_job(TranscriptionJobName=jobName)
+#         status = response["TranscriptionJob"]["TranscriptionJobStatus"]
+#         print(f"Job status: {status}")
+#         time.sleep(5)  # Adjust sleep time as needed
+    
+#     downloadLink = response['TranscriptionJob']['Subtitles']['SubtitleFileUris'][0]
+#     requestsGet = requests.get(downloadLink)
+#     rawSRT = requestsGet.text
 
-    srtLines = rawSRT.split('\n')
+#     srtLines = rawSRT.split('\n')
 
-    maxSrid = int(srtLines[-3])
+#     maxSrid = int(srtLines[-3])
 
-    print(maxSrid)
+#     print(maxSrid)
 
-    # replace with videoID
-    # videoID = '0gbhuya2-XU'
-    doc_ref = db.collection("messageVideos").document(videoID)
+#     # replace with videoID
+#     # videoID = '0gbhuya2-XU'
+#     doc_ref = db.collection("messageVideos").document(videoID)
 
-    doc_ref.set({
+#     doc_ref.set({
         
-            'videoName':title,
+#             'videoName':title,
              
-             'publishTime':publishedTime,
-             'videoType':'livestream',
-            #  'videoLength':5700,
-            #  'generatedItag':151,
-             'maxSRTID':maxSrid
-            #  'messageStartSRTID':169,
-            # 'messageEndSRTID':1064})
-    })
+#              'publishTime':publishedTime,
+#              'videoType':'livestream',
+#             #  'videoLength':5700,
+#             #  'generatedItag':151,
+#              'maxSRTID':maxSrid
+#             #  'messageStartSRTID':169,
+#             # 'messageEndSRTID':1064})
+#     })
 
-    batch = db.batch()
+#     batch = db.batch()
 
-    counter = 0
-    dataDict = {'SRTID':0,
-                'startTime':'',
-                'endTime':'',
-                'genTime':'',
-                'text':'',
-                'genUser':'',
-                'currentEdit':True}
+#     counter = 0
+#     dataDict = {'SRTID':0,
+#                 'startTime':'',
+#                 'endTime':'',
+#                 'genTime':'',
+#                 'text':'',
+#                 'genUser':'',
+#                 'currentEdit':True}
     
-    for line in srtLines:
-        if counter == 0:
-            SRTID = int(line.strip())
-            dataDict['SRTID'] = SRTID
-            counter += 1
+#     for line in srtLines:
+#         if counter == 0:
+#             SRTID = int(line.strip())
+#             dataDict['SRTID'] = SRTID
+#             counter += 1
             
-        elif counter == 1:
-            timeSplit = line.split(' --> ')
-            dataDict['startTime'] = timeSplit[0].strip()
-            dataDict['endTime'] = timeSplit[1].strip()
-            counter += 1
+#         elif counter == 1:
+#             timeSplit = line.split(' --> ')
+#             dataDict['startTime'] = timeSplit[0].strip()
+#             dataDict['endTime'] = timeSplit[1].strip()
+#             counter += 1
             
-        elif counter == 2:
-            dataDict['text'] = line.strip()
-            counter += 1
+#         elif counter == 2:
+#             dataDict['text'] = line.strip()
+#             counter += 1
             
-        elif counter == 3:
-            dataDict['genTime'] = datetime.now()
-            dataDict['genUser'] = 'AWS Transcribe'
-            counter = 0
+#         elif counter == 3:
+#             dataDict['genTime'] = datetime.now()
+#             dataDict['genUser'] = 'AWS Transcribe'
+#             counter = 0
 
-            doc_ref = db.collection("messageVideos").document(videoID).collection("englishTranscript").document()
-            batch.set(doc_ref,dataDict.copy())
+#             doc_ref = db.collection("messageVideos").document(videoID).collection("englishTranscript").document()
+#             batch.set(doc_ref,dataDict.copy())
 
-    batch.commit()
+#     batch.commit()
     
 
 
