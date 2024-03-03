@@ -1,16 +1,19 @@
 <script>
 	import { page } from '$app/stores';
-	import { getTranscript, saveChange, getTranslation } from "../../../utils/fire.js"
+	import { getTranscript, saveChange, getTranslation, transcriptClass } from "../../../utils/fire.js"
 	import { onDestroy, onMount } from 'svelte';
 
 
 	let videoID = $page.params.videoID;
 	let player;
+	let tsClass = new transcriptClass(videoID)
 	let transcript = null;
 	let intervalId = null;
 
 	const fetchTranscript = async () => {
-		transcript = await getTranscript(videoID)
+		// transcript = await getTranscript(videoID)
+		await tsClass.init()
+		transcript = tsClass.englishTranscript
 	}
 
 	fetchTranscript()

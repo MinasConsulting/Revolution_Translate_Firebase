@@ -20,8 +20,32 @@ const db = getFirestore(app)
 
 const functions = getFunctions(app);
 const deepLTranslate = httpsCallable(functions, 'deepLTranslate');
+const getTranscriptFunc = httpsCallable(functions, 'getTranscript');
 
-// const translator = new Translator(otherSecrets.deepL);
+export class transcriptClass {
+  constructor(videoID){
+    this.videoID = videoID
+    this.englishTranscript
+    this.spanishTranscript
+  }
+
+  async init () {
+    const transResult = await getTranscriptFunc({ videoID: this.videoID })
+    if ('englishTranscript' in transResult.data){
+      this.englishTranscript = transResult.data.englishTranscript
+    }
+
+    if ('spanishTranscript' in transResult.data){
+      this.spanishTranscript = transResult.data.spanishTranscript
+    }
+
+    console.log(this.englishTranscript)
+    console.log(this.spanishTranscript)
+  }
+
+
+
+}
 
 export async function getVideos() {
     const videoInfo = new Map();

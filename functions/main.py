@@ -59,6 +59,63 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     # Return a response
     return https_fn.Response(response, status=200)
 
+
+@https_fn.on_request(
+            cors=options.CorsOptions(
+        cors_origins="http://localhost:5173",  # Adjust to your specific origins
+        cors_methods=["POST"],  # Specify allowed methods
+    )
+)
+def getTranscript(req: https_fn.Request) -> https_fn.Response:
+
+    # Check if the request method is POST
+    if req.method != "POST":
+        return https_fn.Response("Method not allowed", status=405)
+
+    # Parse the JSON data from the request body
+    try:
+        data = json.loads(req.data)
+        data = data['data']
+        videoID = data['videoID']
+    except Exception as e:
+        return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
+    
+    returnData = {}
+
+    doc_ref = db.collection("messageVideos").document(videoID)
+    collections = doc_ref.collections()
+
+    collection_names = [collection.id for collection in collections]
+
+    for name in collection_names:
+        transcript_ref = db.collection("messageVideos").document(videoID).collection(name)
+        transcript_query = transcript_ref.where("currentEdit", "==", True).order_by("SRTID")
+        transcript_fire = transcript_query.get()
+        results = []
+        for res in transcript_fire:
+            thisRes = res.to_dict()
+            thisRes['docID'] = res.id
+            thisRes['genTime'] = thisRes['genTime'].isoformat()
+            thisRes['startSec'] = stampToSec(thisRes['startTime'])
+            thisRes['endSec'] = stampToSec(thisRes['endTime'])
+            results.append(thisRes)
+
+        returnData[name] = results.copy()
+
+    returnResponse = json.dumps({"data":returnData})
+    # Return a response
+    return https_fn.Response(returnResponse, status=200)
+
+def stampToSec(stamp):
+    components = stamp.split(",")
+
+    hours = int(components[0].split(":")[0])
+    minutes = int(components[0].split(":")[1])
+    seconds = float(components[0].split(":")[2])
+    milliseconds = int(components[1])
+
+    totalSeconds = hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
+    return totalSeconds
 # @scheduler_fn.on_schedule(schedule="every wednesday 22:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
 # def wedTranscriptGen(context) -> None:
 #     _transcriptGen(context)
