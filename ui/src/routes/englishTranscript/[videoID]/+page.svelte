@@ -193,7 +193,7 @@ async function handleEditComplete(event) {
     {#if transcript}
         <ul>
             {#each transcript as line, index (line.startSec)}
-                <li data-start-sec={line.startSec}> 
+                <li data-start-sec={line.startSec} style="list-style: none"> 
                     <div class="time-and-text">
                         <div class="startTime-box">{line.startTime}</div> 
                         <div class="text-container">
@@ -249,6 +249,10 @@ async function handleEditComplete(event) {
     .spanish-line {
         display: block;
         margin-top: 5px; /* Adjust margin between lines */
+    }
+    .spanish-line {
+        font-family: Arial, sans-serif; /* Set font family for Spanish lines */
+        font-weight: bold; /* Set font weight to bold for a blockier style */
     }
 </style>
 
