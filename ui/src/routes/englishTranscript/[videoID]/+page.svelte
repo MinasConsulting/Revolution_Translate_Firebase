@@ -8,12 +8,16 @@
 	let player;
 	let tsClass = new transcriptClass(videoID)
 	let transcript = null;
+	let spanishTranscript;
 	let intervalId = null;
+	let englishVis = true;
+	let spanishVis = false;
 
 	const fetchTranscript = async () => {
 		// transcript = await getTranscript(videoID)
 		await tsClass.init()
 		transcript = tsClass.englishTranscript
+		spanishTranscript = tsClass.spanishTranscript
 	}
 
 	fetchTranscript()
@@ -152,17 +156,33 @@ async function handleEditComplete(event) {
 	event.target.removeEventListener('blur', handleEditComplete);
 	}
 
+    function handleVisChange(event) {
+        const selectedOption = event.target.value;
+        // Set boolean values based on selected option
+        if (selectedOption === 'English Only') {
+            englishVis = true;
+            spanishVis = false;
+        } else if (selectedOption === 'Spanish Only') {
+            englishVis = false;
+            spanishVis = true;
+        } else if (selectedOption === 'Combined') {
+            englishVis = true;
+            spanishVis = true;
+        }
+		console.log(englishVis)
+		console.log(spanishVis)
+    }
 </script>
 
 <h1>English Transcript for Video {videoID}</h1>
 <menu>
 	<button on:click={() => getTranslation(videoID)}>Translate</button>
 	<label for="textView">Choose a view:</label>
-	<select name="textView" id="textView">
+	<select name="textView" id="textView" on:change={handleVisChange}>
 		<option value="English Only">English Only</option>
 		<option value="Spanish Only">Spanish Only</option>
 		<option value="Combined">Combined</option>
-	  </select>
+	</select>
 
 </menu>
 <div class="video-container">
@@ -170,38 +190,65 @@ async function handleEditComplete(event) {
 </div>
 
 <div class="transcript-box">
-	{#if transcript}
+    {#if transcript}
         <ul>
-            {#each transcript as line (line.startSec)}
-			<li data-start-sec={line.startSec}> 
-				<div class="startTime-box">{line.startTime}</div> 
-				<span contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec}> {line.text} </span>
-			</li>
+            {#each transcript as line, index (line.startSec)}
+                <li data-start-sec={line.startSec}> 
+                    <div class="time-and-text">
+                        <div class="startTime-box">{line.startTime}</div> 
+                        <div class="text-container">
+                            {#if englishVis}
+                                <div class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec}> 
+                                    {line.text}
+                                </div>
+                            {/if}
+                            {#if spanishVis}
+                                <div class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec}> 
+                                    {spanishTranscript[index].text}
+                                </div>
+                            {/if}
+                        </div>
+                    </div>
+                </li>
             {/each}
         </ul>
-	{/if}
+    {/if}
 </div>
-
-
 
 <style>
     .startTime-box {
-        box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15); /* Adjust shadow as needed */
-        padding: 5px; /* Optional padding for spacing */
-        border-radius: 5px; /* Optional rounded corners */
-        margin-right: 10px; /* Optional spacing between startTime and text */
-		display: inline-block; /* Allow content to shrink to its width */
+        box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
+        padding: 5px;
+        border-radius: 5px;
+        margin-right: 10px;
+        display: inline-block;
     }
     .transcript-box {
-        width: 60%;         /* Make width half the page */
-        height: 700px;      /* Adjust height as needed */
-        overflow-y: scroll; /* Enable vertical scrolling */
-        border: 1px solid #ccc; /* Optional border */
-        float: right;       /* Align to the right */ 
+        width: 60%;
+        height: 700px;
+        overflow-y: scroll;
+        border: 1px solid #ccc;
+        float: right;
     }
-	.video-container {
-		float: left; /* Float the video container to the left */
-		width: 35%; /* Adjust width as needed */
-	}
+    .video-container {
+        float: left;
+        width: 35%;
+    }
+    .time-and-text {
+        display: flex;
+        align-items: flex-start;
+    }
+    .text-container {
+        display: flex;
+        flex-direction: column; /* Stack spans vertically */
+		border: 1px solid black; /* Add thin black border */
+        padding: 5px; /* Add padding for spacing */
+		flex-grow: 1; /* Allow container to grow to fill remaining space */
+    }
+    .english-line,
+    .spanish-line {
+        display: block;
+        margin-top: 5px; /* Adjust margin between lines */
+    }
 </style>
 

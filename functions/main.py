@@ -43,19 +43,54 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     try:
         data = json.loads(req.data)
         data = data['data']
-        print(data)
+        videoID = data['videoID']
     except Exception as e:
         return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
-
-    # Access the data from the request body
-    if 'englishText' not in data:
-        return https_fn.Response("Missing 'englishText' in request body", status=400)
     
-    deepLEnglish = data['englishText']
+    returnData = _getTranscript(videoID)
+    englishData = returnData['englishTranscript']
 
-    result = deeplTrans.translate_text(deepLEnglish,source_lang='EN',target_lang='ES',split_sentences='nonewlines',tag_handling='html',formality='less')
+    deepLEnglish = ""
+    for item in englishData:
+        deepLEnglish += item['text']+'<b> </b>'
 
-    response = json.dumps({"data":{"spanishText":result.text}})
+    translationResult = deeplTrans.translate_text(deepLEnglish,source_lang='EN',target_lang='ES',split_sentences='nonewlines',tag_handling='html',formality='less')
+
+    splitTranslate = translationResult.text.split('<b> </b>')
+    del splitTranslate[-1]
+
+    batch = db.batch()
+
+    dataDict = {'SRTID':0,
+                'startTime':'',
+                'endTime':'',
+                'genTime':'',
+                'text':'',
+                'genUser':'',
+                'currentEdit':True}
+    
+    dataReturn = []
+    
+    for i,line in enumerate(englishData):
+
+        dataDict['SRTID'] = line['SRTID']
+        dataDict['startTime'] = line['startTime']
+        dataDict['endTime'] = line['endTime']
+        dataDict['text'] = splitTranslate[i]
+        dataDict['genTime'] = datetime.now()
+        dataDict['genUser'] = 'DeepLTranslate'
+        dataDict['parentEnglish'] = line['docID']
+
+        doc_ref = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
+        batch.set(doc_ref,dataDict.copy())
+
+        dataDict['genTime'] = dataDict['genTime'].isoformat()
+        
+        dataReturn.append(dataDict.copy())
+
+    batch.commit()
+
+    response = json.dumps({"data":dataReturn})
     # Return a response
     return https_fn.Response(response, status=200)
 
@@ -80,6 +115,13 @@ def getTranscript(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
     
+    returnData = _getTranscript(videoID)
+
+    returnResponse = json.dumps({"data":returnData})
+    # Return a response
+    return https_fn.Response(returnResponse, status=200)
+
+def _getTranscript(videoID):
     returnData = {}
 
     doc_ref = db.collection("messageVideos").document(videoID)
@@ -102,9 +144,8 @@ def getTranscript(req: https_fn.Request) -> https_fn.Response:
 
         returnData[name] = results.copy()
 
-    returnResponse = json.dumps({"data":returnData})
-    # Return a response
-    return https_fn.Response(returnResponse, status=200)
+    return returnData
+    
 
 def stampToSec(stamp):
     components = stamp.split(",")

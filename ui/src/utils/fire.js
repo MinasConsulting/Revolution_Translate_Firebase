@@ -41,6 +41,13 @@ export class transcriptClass {
 
     console.log(this.englishTranscript)
     console.log(this.spanishTranscript)
+
+  }
+
+  async spanishTranslate() {
+    const result = await deepLTranslate({ videoID: this.videoID })
+    console.log(result)  
+
   }
 
 
