@@ -14,35 +14,34 @@
 	let intervalId = null;
 	let englishVis = true;
 	let spanishVis = false;
+	let videoLink = null;
 
-	const fetchTranscript = async () => {
-		// transcript = await getTranscript(videoID)
-		await tsClass.init()
-		transcript = tsClass.englishTranscript
-		spanishTranscript = tsClass.spanishTranscript
-	}
+    onMount(async () => {
+        const fetchTranscriptAndInitPlayer = async () => {
+            await tsClass.init();
+            transcript = tsClass.englishTranscript;
+            spanishTranscript = tsClass.spanishTranscript;
+            videoLink = tsClass.videoURL;
 
-	fetchTranscript()
+            // Initialize Video.js player after fetching the video URL
+            player = videojs(document.getElementById('my-video'), {
+                controls: true,
+                fluid: true,
+                preload: 'auto',
+                sources: [{
+                    src: videoLink,
+                    type: 'video/mp4'
+                }]
+            });
 
-	onMount(() => {
-    // Check if the element exists before initializing the player
-    // const element = document.getElementById('my-video-player');
-    // if (!element) {
-    //   console.error('Element with ID "my-video-player" not found.');
-    //   return;
-    // }
 
-    // Initialize Video.js player
-    player = videojs(document.getElementById('my-video'), {
-      controls: true,
-	  fluid: true,
-	  preload: 'auto'
+        }
+		
+		const pollingInterval = 100;
+        intervalId = setInterval(getPlaybackPosition, pollingInterval);
+
+        await fetchTranscriptAndInitPlayer();
     });
-
-	const pollingInterval = 100;
-	intervalId = setInterval(getPlaybackPosition, pollingInterval);
-	return () => clearInterval(intervalId);
-  });
 
   onDestroy(() => {
 		clearInterval(intervalId);
@@ -165,9 +164,12 @@ async function handleEditComplete(event) {
 	</select>
 
 </menu>
+
+
 <div class="video-container">
 	<video id="my-video" class="video-js" controls preload="auto" style="width:100%">
-		<source src="https://firebasestorage.googleapis.com/v0/b/revolutiontranslate.appspot.com/o/streamVideos%2Fweekeng_gathering.webm?alt=media&token=2eb6f5c8-b016-43f0-b734-2cc85c4b8612" type="video/webm" />
+		<!-- <source src="https://firebasestorage.googleapis.com/v0/b/revolutiontranslate.appspot.com/o/transcoded%2Fattempt1%2Fsd.mp4?alt=media&token=9c954428-3d52-4816-ab13-dae8a0e3b289" type="video/mp4" />
+		<source src={videoLink} type="video/mp4" /> -->
 	</video>
 </div>
 

@@ -3,7 +3,6 @@ from firebase_functions import firestore_fn, https_fn, options, storage_fn, pubs
 
 # The Firebase Admin SDK to access Cloud Firestore.
 from firebase_admin import initialize_app, firestore, storage
-import google.cloud.firestore
 import boto3
 import os
 from pytube import YouTube
@@ -15,12 +14,18 @@ from datetime import timedelta
 import deepl
 import json
 from google.cloud import videointelligence
-import pathlib
+from google.cloud.video import transcoder_v1
+from google.cloud.video.transcoder_v1.services.transcoder_service import (
+    TranscoderServiceClient,
+)
 
 app = initialize_app()
 db = firestore.client()
 
 deeplTrans = deepl.Translator(os.environ['DEEPLKEY'])
+
+project_id = "revolutiontranslate"
+region = "us-central1"
 
 
 @storage_fn.on_object_finalized()
@@ -40,25 +45,37 @@ def transcriptKickOff(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
         print(f"This is not a video. ({content_type})")
         return
 
-    video_client = videointelligence.VideoIntelligenceServiceClient()
-    features = [videointelligence.Feature.SPEECH_TRANSCRIPTION]
+    # video_client = videointelligence.VideoIntelligenceServiceClient()
+    # features = [videointelligence.Feature.SPEECH_TRANSCRIPTION]
 
-    config = videointelligence.SpeechTranscriptionConfig(
-        language_code="en-US", 
-        enable_automatic_punctuation=True
-    )
-    video_context = videointelligence.VideoContext(speech_transcription_config=config)
+    # config = videointelligence.SpeechTranscriptionConfig(
+    #     language_code="en-US", 
+    #     enable_automatic_punctuation=True
+    # )
+    # video_context = videointelligence.VideoContext(speech_transcription_config=config)
 
-    operation = video_client.annotate_video(
-        request={
-            "features": features,
-            "input_uri": file_uri,
-            "video_context": video_context,
-            "output_uri": f"gs://{bucket_name}/transcriptComplete/{file}.json"
-        }
-    )
+    # operation = video_client.annotate_video(
+    #     request={
+    #         "features": features,
+    #         "input_uri": file_uri,
+    #         "video_context": video_context,
+    #         "output_uri": f"gs://{bucket_name}/transcriptComplete/{file}.json"
+    #     }
+    # )
 
-    print("\nProcessing video for speech transcription.")
+    # print("\nProcessing video for speech transcription.")
+
+    transcode_client = TranscoderServiceClient()
+
+    parent = f"projects/{project_id}/locations/{region}"
+    job = transcoder_v1.types.Job()
+    job.input_uri = file_uri
+    job.output_uri = f"gs://{bucket_name}/transcoded/{file}/"
+
+    response = transcode_client.create_job(parent=parent, job=job)
+    print(f"Transcode job started: {response.name}")
+
+
 
 
 @storage_fn.on_object_finalized()
@@ -67,6 +84,7 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
     file_name = event.data.name
     file_uri = f"gs://{bucket_name}/{file_name}"
     file = file_name.split(r"/")[-1].split(".")[0]
+    videoLink = f"gs://{bucket_name}/transcoded/{file}/hd.mp4"
 
     content_type = event.data.content_type
 
@@ -90,7 +108,7 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
     root_doc_ref.set({
             'videoName':videoName,
              'publishTime':genTime,
-             'videoLink': "gs:/"+result['annotation_results'][0]['input_uri']
+             'videoLink': videoLink
     })
 
     videoID = root_doc_ref.id

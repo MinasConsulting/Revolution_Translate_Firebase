@@ -29,7 +29,7 @@ export class transcriptClass {
     this.videoID = videoID
     this.englishTranscript
     this.spanishTranscript
-    this.videoURL
+    this.videoURL = undefined
   }
 
   async init () {
@@ -44,9 +44,11 @@ export class transcriptClass {
 
     // console.log(this.englishTranscript)
     // console.log(this.spanishTranscript)
+    const docRef = doc(db, 'messageVideos', this.videoID)
+    const videoDoc = await getDoc(docRef)
+    const videoData = videoDoc.data()
 
-    this.videoURL = await getDownloadURL(ref(storage, "gs://revolutiontranslate.appspot.com/videos/Copy of Sunday_3_3_Resi_1234565434.mp4"))
-    console.log(this.videoURL)
+    this.videoURL = await getDownloadURL(ref(storage, videoData.videoLink))
 
   }
 
