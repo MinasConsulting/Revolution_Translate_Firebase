@@ -1,10 +1,9 @@
 <script>
 	import { page } from '$app/stores';
-	import { getTranscript, saveChange, getTranslation, transcriptClass } from "../../../utils/fire.js"
+	import { saveChange, transcriptClass } from "../../../utils/fire.js"
 	import { onDestroy, onMount } from 'svelte';
 	import videojs from 'video.js';
 	import 'video.js/dist/video-js.css'; // Import Video.js CSS
-
 
 	let videoID = $page.params.videoID;
 	let player;
@@ -36,7 +35,7 @@
 
 
         }
-		
+
 		const pollingInterval = 100;
         intervalId = setInterval(getPlaybackPosition, pollingInterval);
 
@@ -155,7 +154,7 @@ async function handleEditComplete(event) {
 
 <h1>English Transcript for Video {videoID}</h1>
 <menu>
-	<button on:click={() => getTranslation(videoID)}>Translate</button>
+	<button on:click={() => tsClass.spanishTranslate()}>Translate</button>
 	<label for="textView">Choose a view:</label>
 	<select name="textView" id="textView" on:change={handleVisChange}>
 		<option value="English Only">English Only</option>
@@ -167,10 +166,7 @@ async function handleEditComplete(event) {
 
 
 <div class="video-container">
-	<video id="my-video" class="video-js" controls preload="auto" style="width:100%">
-		<!-- <source src="https://firebasestorage.googleapis.com/v0/b/revolutiontranslate.appspot.com/o/transcoded%2Fattempt1%2Fsd.mp4?alt=media&token=9c954428-3d52-4816-ab13-dae8a0e3b289" type="video/mp4" />
-		<source src={videoLink} type="video/mp4" /> -->
-	</video>
+	<video id="my-video" class="video-js" controls preload="auto" style="width:100%"></video>
 </div>
 
 <div class="transcript-box">
@@ -182,12 +178,12 @@ async function handleEditComplete(event) {
                         <div class="startTime-box">{line.startTime}</div> 
                         <div class="text-container">
                             {#if englishVis}
-                                <div class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec}> 
+                                <div class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-language="englishTranscript"> 
                                     {line.text}
                                 </div>
                             {/if}
                             {#if spanishVis}
-                                <div class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec}> 
+                                <div class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={spanishTranscript[index].docID} data-start-sec={spanishTranscript[index].startSec} data-language="spanishTranscript"> 
                                     {spanishTranscript[index].text}
                                 </div>
                             {/if}

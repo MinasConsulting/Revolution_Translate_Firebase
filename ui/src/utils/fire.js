@@ -54,7 +54,7 @@ export class transcriptClass {
 
   async spanishTranslate() {
     const result = await deepLTranslate({ videoID: this.videoID })
-    console.log(result)  
+    this.spanishTranscript = result 
 
   }
 
@@ -98,39 +98,12 @@ export async function getVideos() {
     return await promise;
   }
 
-export async function getTranscript(videoID) {
-    const transcript = [];
-    const englishTranscriptRef = query(
-        collection(db, "messageVideos", videoID, "englishTranscript"),
-        where("currentEdit", "==",true),
-        orderBy("SRTID") // Order by the field 'SRTID'
-    );
-
-    // Get the documents and construct a promise that resolves when all values are pushed
-    return new Promise((resolve, reject) => {
-        getDocs(englishTranscriptRef)
-        .then((snapshot) => {
-            snapshot.forEach((doc) => {
-            const data = doc.data();
-        
-            data.startSec = stampToSec(data.startTime)
-            data.endSec = stampToSec(data.endTime)
-            data.docID = doc.id
-            transcript.push(data);
-            });
-            // Resolve with the complete transcript array
-            resolve(transcript);
-        })
-        .catch((error) => {
-            reject(error); // Reject with the error if any
-        });
-    });
-}
-
 export async function saveChange(event,videoID) {
 
     const docID = event.target.dataset.docid
-    const docRef = doc(db, 'messageVideos', videoID, 'englishTranscript', docID)
+    const langSource = event.target.dataset.language
+    console.log(langSource)
+    const docRef = doc(db, 'messageVideos', videoID, langSource, docID)
     const currentDoc = await getDoc(docRef)
     const currentDocData = currentDoc.data()
 
@@ -146,18 +119,12 @@ export async function saveChange(event,videoID) {
     currentDocData.text = event.target.textContent
 
 
-    const newDocRef = collection(db, 'messageVideos', videoID, 'englishTranscript')
+    const newDocRef = collection(db, 'messageVideos', videoID, langSource)
     const newDocID = await addDoc(newDocRef,currentDocData)
 
     await setDoc(docRef, { currentEdit: false }, {merge: true})
 
     return newDocID.id
-
-}
-
-export async function getTranslation(videoID) {
-  const result = await deepLTranslate({"englishText":"My name is Evan"})
-  console.log(result)
 
 }
 
