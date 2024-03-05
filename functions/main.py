@@ -1,9 +1,8 @@
 # The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
-from firebase_functions import firestore_fn, https_fn, options
-from firebase_functions import scheduler_fn
+from firebase_functions import firestore_fn, https_fn, options, storage_fn, pubsub_fn
 
 # The Firebase Admin SDK to access Cloud Firestore.
-from firebase_admin import initialize_app, firestore
+from firebase_admin import initialize_app, firestore, storage
 import google.cloud.firestore
 import boto3
 import os
@@ -15,11 +14,142 @@ from datetime import datetime
 from datetime import timedelta
 import deepl
 import json
+from google.cloud import videointelligence
+import pathlib
 
 app = initialize_app()
 db = firestore.client()
 
 deeplTrans = deepl.Translator(os.environ['DEEPLKEY'])
+
+
+@storage_fn.on_object_finalized()
+def transcriptKickOff(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]):
+    bucket_name = event.data.bucket
+    file_name = event.data.name
+    file_uri = f"gs://{bucket_name}/{file_name}"
+    file = file_name.split(r"/")[-1].split(".")[0]
+
+    content_type = event.data.content_type
+
+    if not file_name.startswith("videos/"):
+        print(f"File not in 'videos' folder. Ignoring.")
+        return
+
+    if not content_type or not content_type.startswith("video/"):
+        print(f"This is not a video. ({content_type})")
+        return
+
+    video_client = videointelligence.VideoIntelligenceServiceClient()
+    features = [videointelligence.Feature.SPEECH_TRANSCRIPTION]
+
+    config = videointelligence.SpeechTranscriptionConfig(
+        language_code="en-US", 
+        enable_automatic_punctuation=True
+    )
+    video_context = videointelligence.VideoContext(speech_transcription_config=config)
+
+    operation = video_client.annotate_video(
+        request={
+            "features": features,
+            "input_uri": file_uri,
+            "video_context": video_context,
+            "output_uri": f"gs://{bucket_name}/transcriptComplete/{file}.json"
+        }
+    )
+
+    print("\nProcessing video for speech transcription.")
+
+
+@storage_fn.on_object_finalized()
+def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]) -> None:
+    bucket_name = event.data.bucket
+    file_name = event.data.name
+    file_uri = f"gs://{bucket_name}/{file_name}"
+    file = file_name.split(r"/")[-1].split(".")[0]
+
+    content_type = event.data.content_type
+
+    if not file_name.startswith("transcriptComplete/"):
+        print(f"File not in 'transcriptComplete' folder. Ignoring.")
+        return
+
+    bucket = storage.bucket(bucket_name)
+    blob = bucket.blob(file_name)
+    data = blob.download_as_string()
+    result = json.loads(data)
+
+    videoName = result['annotation_results'][0]['input_uri'].split(r"/")[-1]
+
+    print("Starting transcript process for "+videoName)
+
+    root_doc_ref = db.collection("messageVideos").document()
+
+    genTime = datetime.now()
+
+    root_doc_ref.set({
+            'videoName':videoName,
+             'publishTime':genTime,
+             'videoLink': "https://storage.cloud.google.com"+result['annotation_results'][0]['input_uri']
+    })
+
+    videoID = root_doc_ref.id
+
+    batch = db.batch()
+
+    dataDict = {'SRTID':0,
+                'startTime':'',
+                'endTime':'',
+                'genTime':genTime,
+                'startSec':'',
+                'endSec':'',
+                'text':'',
+                'genUser':'Google Video Intellegence Annotate',
+                'currentEdit':True}
+
+
+    SRTID = 0
+    for x in result['annotation_results'][0]['speech_transcriptions']:
+        thisText = ""
+        startTime = None
+        thisIter = x['alternatives'][0].get('words')
+        if thisIter is None:
+            continue
+        for word in thisIter:
+            if thisText == "":
+                startTime = word['start_time']
+            
+            thisText += word['word']+" "
+            
+            if any(char in word['word'] for char in [".",',','!','?']):
+                endTime = word['end_time']
+
+                dataDict['SRTID'] = SRTID
+                dataDict['startSec'] = startTime['seconds'] + startTime.get('nanos',0)*1e-9
+                dataDict['endSec'] = endTime['seconds'] + endTime.get('nanos',0)*1e-9
+                dataDict['startTime'] = _seconds_to_formatted_time(dataDict['startSec'])
+                dataDict['endTime'] = _seconds_to_formatted_time(dataDict['endSec'])
+                dataDict['text'] = thisText
+
+                doc_ref = db.collection("messageVideos").document(videoID).collection("englishTranscript").document()
+                batch.set(doc_ref,dataDict.copy())
+
+                thisText = ""
+                SRTID += 1
+    print(f"{videoName} processing complete.")
+    batch.commit()
+
+
+def _seconds_to_formatted_time(total_seconds: float) -> str:
+    # Calculate hours, minutes, and seconds
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+
+    # Format the time
+    formatted_time = "{:02d}:{:02d}:{:02d},{:03d}".format(int(hours), int(minutes), int(seconds), int((seconds - int(seconds)) * 1000))
+
+    return formatted_time
 
 # @https_fn.on_call(
 #     cors=options.CorsOptions(
@@ -171,11 +301,15 @@ def stampToSec(stamp):
 #     _transcriptGen(context)
 
 
-# # @scheduler_fn.on_schedule(schedule="every sunday 23:00",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
-# @scheduler_fn.on_schedule(schedule="every monday 8:19",timezone=scheduler_fn.Timezone("America/Denver"),timeout_sec=540,memory=1024)
-# # def awsScript(context) -> None:
+# @https_fn.on_request(
+#             cors=options.CorsOptions(
+#         cors_origins="http://localhost:5173",  # Adjust to your specific origins
+#         cors_methods=["POST"],  # Specify allowed methods
+#     )
+# )
+# def awsScript(req: https_fn.Request) -> https_fn.Response:
 
-#     videoID = 'tatuomfLN2c'
+#     videoID = '-mNT1N8ZgWE'
 
 #     api_service_name = "youtube"
 #     api_version = "v3"
@@ -200,6 +334,28 @@ def stampToSec(stamp):
 #     # jobName = '0gbhuya2-XU-1708218034'
 #     print(f"Transcribe Job Name: {jobName}")
 
+#     doc_ref = db.collection("messageVideos").document(videoID)
+
+#     doc_snapshot = doc_ref.get()
+
+# # Check if the document exists
+#     if doc_snapshot.exists:
+#         return https_fn.Response(json.dumps({"data":"Exists"}), status=200)
+
+
+#     doc_ref.set({
+        
+#             'videoName':title,
+             
+#              'publishTime':publishedTime,
+#              'videoType':'livestream',
+#             #  'videoLength':5700,
+#             #  'generatedItag':151,
+#              'maxSRTID':maxSrid
+#             #  'messageStartSRTID':169,
+#             # 'messageEndSRTID':1064})
+#     })
+
 #     transcribeClient = boto3.client('transcribe',
 #                                     aws_access_key_id=os.environ['AWSKEY'],
 #                                     aws_secret_access_key=os.environ['AWSSECRET'],
@@ -210,6 +366,10 @@ def stampToSec(stamp):
 #                                                         Media={'MediaFileUri':f's3://revolution-church-transcribe/AudioUploads/{videoID}.mp3'},
 #                                                         LanguageCode = 'en-US',
 #                                                         Subtitles={'Formats':['srt']})
+    
+#     # response = transcribeClient.get_transcription_job(
+#     #     TranscriptionJobName='-mNT1N8ZgWE-1709513712'
+#     # )
     
 #     status = "IN_PROGRESS"
 #     while status not in ["COMPLETED", "FAILED"]:
@@ -227,23 +387,6 @@ def stampToSec(stamp):
 #     maxSrid = int(srtLines[-3])
 
 #     print(maxSrid)
-
-#     # replace with videoID
-#     # videoID = '0gbhuya2-XU'
-#     doc_ref = db.collection("messageVideos").document(videoID)
-
-#     doc_ref.set({
-        
-#             'videoName':title,
-             
-#              'publishTime':publishedTime,
-#              'videoType':'livestream',
-#             #  'videoLength':5700,
-#             #  'generatedItag':151,
-#              'maxSRTID':maxSrid
-#             #  'messageStartSRTID':169,
-#             # 'messageEndSRTID':1064})
-#     })
 
 #     batch = db.batch()
 
@@ -281,6 +424,8 @@ def stampToSec(stamp):
 #             batch.set(doc_ref,dataDict.copy())
 
 #     batch.commit()
+
+#     return https_fn.Response(json.dumps({"data":"done"}), status=200)
     
 
 
