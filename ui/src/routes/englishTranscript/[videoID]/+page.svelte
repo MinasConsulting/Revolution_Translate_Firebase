@@ -2,6 +2,8 @@
 	import { page } from '$app/stores';
 	import { getTranscript, saveChange, getTranslation, transcriptClass } from "../../../utils/fire.js"
 	import { onDestroy, onMount } from 'svelte';
+	import videojs from 'video.js';
+	import 'video.js/dist/video-js.css'; // Import Video.js CSS
 
 
 	let videoID = $page.params.videoID;
@@ -23,41 +25,19 @@
 	fetchTranscript()
 
 	onMount(() => {
-	if (window.YT) {
-		player = new YT.Player('player', {
-        height: '700',
-        width: '100%', // Adjust height and width as needed
-        videoId: videoID,
-        playerVars: {
-          enablejsapi: 1, // Enable JavaScript API,
-        },
-      });
-	}
-	else {
+    // Check if the element exists before initializing the player
+    // const element = document.getElementById('my-video-player');
+    // if (!element) {
+    //   console.error('Element with ID "my-video-player" not found.');
+    //   return;
+    // }
 
-		const tag = document.createElement('script');
-		tag.src = `https://www.youtube.com/iframe_api`; // YouTube iframe API script
-		const firstScriptTag = document.getElementsByTagName('script')[0];
-            if (firstScriptTag) {
-                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-            } else {
-                // If no script tags are found, append to the head instead
-                document.head.appendChild(tag);
-            }
-
-
-		window.onYouTubeIframeAPIReady = () => {
-		player = new YT.Player('player', {
-			height: '700',
-			width: '100%', // Adjust height and width as needed
-			videoId: videoID,
-			playerVars: {
-			enablejsapi: 1, // Enable JavaScript API,
-			},
-		});
-		}
-
-	}
+    // Initialize Video.js player
+    player = videojs(document.getElementById('my-video'), {
+      controls: true,
+	  fluid: true,
+	  preload: 'auto'
+    });
 
 	const pollingInterval = 100;
 	intervalId = setInterval(getPlaybackPosition, pollingInterval);
@@ -66,14 +46,14 @@
 
   onDestroy(() => {
 		clearInterval(intervalId);
-		if (player) player.destroy(); // Dispose of the player instance
+		if (player) player.dispose(); // Dispose of the player instance
 	});
 
 
 
   function getPlaybackPosition() {
-	if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
-    const currentPosition = player.getCurrentTime();
+	if (player && player.currentTime() > 0 && !player.paused()) {
+    const currentPosition = player.currentTime();
 	let transcriptLine = null
 	let scrollLine = null
 	const centerFactor = 5
@@ -123,7 +103,7 @@
   }
 
   function handleDoubleClick(event) {
-	player.pauseVideo();
+	player.pause();
 	console.log(event)
 	// Set the span to editable on double click
 	event.target.contentEditable = "true";
@@ -135,8 +115,8 @@
 	}
 
 async function handleEditComplete(event) {
-	player.seekTo(parseFloat(event.target.dataset.startSec))
-	player.playVideo();
+	player.currentTime(parseFloat(event.target.dataset.startSec))
+	player.play();
 	console.log(event)
 	// Access the modified text
 	const editedText = event.target.textContent;
@@ -186,7 +166,9 @@ async function handleEditComplete(event) {
 
 </menu>
 <div class="video-container">
-	<div id="player"></div>
+	<video id="my-video" class="video-js" controls preload="auto" style="width:100%">
+		<source src="https://firebasestorage.googleapis.com/v0/b/revolutiontranslate.appspot.com/o/streamVideos%2Fweekeng_gathering.webm?alt=media&token=2eb6f5c8-b016-43f0-b734-2cc85c4b8612" type="video/webm" />
+	</video>
 </div>
 
 <div class="transcript-box">
@@ -253,6 +235,13 @@ async function handleEditComplete(event) {
     .spanish-line {
         font-family: Arial, sans-serif; /* Set font family for Spanish lines */
         font-weight: bold; /* Set font weight to bold for a blockier style */
+    }
+    .video-container {
+        display: flex; /* Use flexbox */
+        justify-content: center; /* Center items horizontally */
+        align-items: center; /* Center items vertically */
+        width: 35%;
+       /* height: 100vh;  Use 100% of the viewport height */
     }
 </style>
 

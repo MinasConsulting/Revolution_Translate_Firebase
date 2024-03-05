@@ -90,7 +90,7 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
     root_doc_ref.set({
             'videoName':videoName,
              'publishTime':genTime,
-             'videoLink': "https://storage.cloud.google.com"+result['annotation_results'][0]['input_uri']
+             'videoLink': "gs:/"+result['annotation_results'][0]['input_uri']
     })
 
     videoID = root_doc_ref.id
@@ -115,13 +115,19 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
         thisIter = x['alternatives'][0].get('words')
         if thisIter is None:
             continue
-        for word in thisIter:
+        for index, word in enumerate(thisIter):
             if thisText == "":
                 startTime = word['start_time']
+
+            punctCheck = any(char in word['word'] for char in [".",',','!','?'])
+
+            if index == len(thisIter) - 1 and not punctCheck:
+                word['word'] += "."
+                punctCheck = True
             
             thisText += word['word']+" "
-            
-            if any(char in word['word'] for char in [".",',','!','?']):
+
+            if punctCheck:
                 endTime = word['end_time']
 
                 dataDict['SRTID'] = SRTID

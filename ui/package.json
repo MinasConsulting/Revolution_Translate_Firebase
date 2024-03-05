@@ -16,6 +16,7 @@
 	"type": "module",
 	"dependencies": {
 		"@sveltejs/kit": "^2.5.2",
-		"firebase": "^10.8.0"
+		"firebase": "^10.8.0",
+		"video.js": "^8.10.0"
 	}
 }

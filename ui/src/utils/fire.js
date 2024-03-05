@@ -1,5 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
+import {getStorage, getDownloadURL, ref } from "firebase/storage"
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy, query, where } from "firebase/firestore"
 // import { Translator } from 'deepl-node';
@@ -17,6 +18,7 @@ import otherSecrets from '../.secrets/otherSecrets.json'
 const app = initializeApp(firebaseConfig);
 
 const db = getFirestore(app)
+const storage = getStorage(app)
 
 const functions = getFunctions(app);
 const deepLTranslate = httpsCallable(functions, 'deepLTranslate');
@@ -27,6 +29,7 @@ export class transcriptClass {
     this.videoID = videoID
     this.englishTranscript
     this.spanishTranscript
+    this.videoURL
   }
 
   async init () {
@@ -39,8 +42,11 @@ export class transcriptClass {
       this.spanishTranscript = transResult.data.spanishTranscript
     }
 
-    console.log(this.englishTranscript)
-    console.log(this.spanishTranscript)
+    // console.log(this.englishTranscript)
+    // console.log(this.spanishTranscript)
+
+    this.videoURL = await getDownloadURL(ref(storage, "gs://revolutiontranslate.appspot.com/videos/Copy of Sunday_3_3_Resi_1234565434.mp4"))
+    console.log(this.videoURL)
 
   }
 
