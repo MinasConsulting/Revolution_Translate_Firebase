@@ -182,8 +182,11 @@ def _seconds_to_formatted_time(total_seconds: float) -> str:
 #     )
 # )
 @https_fn.on_request(
-            cors=options.CorsOptions(
-        cors_origins="http://localhost:5173",  # Adjust to your specific origins
+    cors=options.CorsOptions(
+        cors_origins=[
+            "http://localhost:5173",  # Add your specific origins here
+            "https://revolutiontranslate.web.app/"
+        ],
         cors_methods=["POST"],  # Specify allowed methods
     )
 )
@@ -252,8 +255,11 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
 
 
 @https_fn.on_request(
-            cors=options.CorsOptions(
-        cors_origins="http://localhost:5173",  # Adjust to your specific origins
+    cors=options.CorsOptions(
+        cors_origins=[
+            "http://localhost:5173",  # Add your specific origins here
+            "https://revolutiontranslate.web.app/"
+        ],
         cors_methods=["POST"],  # Specify allowed methods
     )
 )
