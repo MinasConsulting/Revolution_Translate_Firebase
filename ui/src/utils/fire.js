@@ -69,13 +69,7 @@ export async function getVideos() {
 
         const thisData = doc.data()
 
-        // Parse the timestamp string into milliseconds since epoch (1970-01-01T00:00:00Z)
-        const timestampInMilliseconds = Date.parse(thisData.publishTime);
-
-        // Create a new Date object from the milliseconds
-        const dateObject = new Date(timestampInMilliseconds);
-
-        thisData.jsTS = dateObject
+        thisData.jsTS = thisData.publishTime
 
         videoInfo.set(doc.id, thisData);
         // Resolve the promise after all iterations are done

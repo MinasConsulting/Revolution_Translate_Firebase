@@ -1,7 +1,16 @@
 <script>
     import { getVideos } from '../utils/fire.js';
+    import { onMount } from 'svelte';
 
     let videoInfoPromise = getVideos()
+    onMount(() => {
+        let authenticated = localStorage.getItem('authenticated')
+        if (!authenticated) {
+            // // Redirect the user to the login page if not authenticated
+            // authenticated = localStorage.getItem('authenticated') === 'true';
+            window.location.href = '/login';
+        }
+    });
 
 </script>
 
@@ -13,20 +22,25 @@
         <div class="parent-container">
             <div class="video-list">
             <li>
-                {value.videoName}
+                <h2>{value.videoName}</h2>
             </li>
             <li>
                 <a href={`/englishTranscript/${videoID}`} videoID={videoID}>
-                    <img src="https://i.ytimg.com/vi/{videoID}/hqdefault.jpg" alt="Message Thumbnail"/>
+                    <img src="/Black Mark.png" alt="Message Thumbnail"/>
                 </a>
             </li>
             </div>
         </div>
         {/each}
     
+        <footer>
+            Evan Stoelzel | Minas Consulting | evan@minas.consulting
+        </footer>
+    
 {:catch error}
 	<p style="color: red">{error.message}</p>
 {/await}
+
 
 <style>
 
@@ -53,6 +67,9 @@
         align-items: center;
         gap: 10px;
     }
+    .video-list img {
+    width: 250px;
+    height: 250px;
+}
 
 </style>
-

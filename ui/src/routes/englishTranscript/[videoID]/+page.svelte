@@ -16,6 +16,15 @@
 	let videoLink = null;
 
     onMount(async () => {
+
+        const getLogin = async () => {
+            let authenticated = localStorage.getItem('authenticated')
+            if (!authenticated) {
+                // // Redirect the user to the login page if not authenticated
+                // authenticated = localStorage.getItem('authenticated') === 'true';
+                window.location.href = '/login';
+            }
+        }
         const fetchTranscriptAndInitPlayer = async () => {
             await tsClass.init();
 			transcript = tsClass.englishTranscript;
@@ -38,7 +47,7 @@
 
 		const pollingInterval = 100;
         intervalId = setInterval(getPlaybackPosition, pollingInterval);
-
+        await getLogin()
         await fetchTranscriptAndInitPlayer();
     });
 
