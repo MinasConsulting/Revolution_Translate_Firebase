@@ -25,7 +25,7 @@
                 <h2>{value.videoName}</h2>
             </li>
             <li>
-                <a href={`/englishTranscript/${videoID}`} videoID={videoID}>
+                <a href={`/englishTranscript/${videoID}`} videoID={videoID} on:click={() => {localStorage.setItem('videoName', value.videoName);}}>
                     <img src="/Black Mark.png" alt="Message Thumbnail"/>
                 </a>
             </li>

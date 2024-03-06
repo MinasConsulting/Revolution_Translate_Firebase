@@ -6,6 +6,7 @@
 	import 'video.js/dist/video-js.css'; // Import Video.js CSS
 
 	let videoID = $page.params.videoID;
+    let videoName = null;
 	let player;
 	let tsClass = new transcriptClass(videoID)
 	let transcript = null;
@@ -14,6 +15,7 @@
 	let englishVis = true;
 	let spanishVis = true;
 	let videoLink = null;
+    let translateLock = false;
 
     onMount(async () => {
 
@@ -29,6 +31,9 @@
             await tsClass.init();
 			transcript = tsClass.englishTranscript;
             spanishTranscript = tsClass.spanishTranscript;
+            if (spanishTranscript) {
+                translateLock = true;
+            }
             videoLink = tsClass.videoURL;
 
             // Initialize Video.js player after fetching the video URL
@@ -48,6 +53,13 @@
 		const pollingInterval = 100;
         intervalId = setInterval(getPlaybackPosition, pollingInterval);
         await getLogin()
+        if (localStorage.getItem('videoName') == null) {
+            window.location.href = '/';
+        }
+        else {
+            videoName = localStorage.getItem('videoName')
+        }
+
         await fetchTranscriptAndInitPlayer();
     });
 
@@ -159,11 +171,22 @@ async function handleEditComplete(event) {
 		console.log(englishVis)
 		console.log(spanishVis)
     }
+
+    async function handleTranslateClick() {
+        if (spanishTranscript == undefined) {
+            const confirmation = window.confirm('Are you sure? All English edits must be complete before proceeding with AI translation.');
+            if (confirmation) {
+                translateLock = true
+                await tsClass.spanishTranslate();
+                spanishTranscript = tsClass.spanishTranscript;
+            }
+        } 
+    }
 </script>
 
-<h1>English Transcript for Video {videoID}</h1>
+<h1>Transcript for {videoName}</h1>
 <menu>
-	<button on:click={async () => {await tsClass.spanishTranslate(); spanishTranscript = tsClass.spanishTranscript;}}>Translate</button>
+	<button on:click={handleTranslateClick} class:disabled={translateLock}>Translate</button>
 	<!-- <label for="textView">Choose a view:</label>
 	<select name="textView" id="textView" on:change={handleVisChange}>
 		<option value="English Only">English Only</option>
@@ -250,5 +273,10 @@ async function handleEditComplete(event) {
         width: 35%;
        /* height: 100vh;  Use 100% of the viewport height */
     }
+    .disabled {
+    background-color: #ccc; /* Grey out the button */
+    color: #999; /* Optionally change text color */
+    cursor: not-allowed; /* Optionally change cursor */
+  }
 </style>
 
