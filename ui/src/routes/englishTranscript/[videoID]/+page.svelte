@@ -9,7 +9,7 @@
 	let player;
 	let tsClass = new transcriptClass(videoID)
 	let transcript = null;
-	let spanishTranscript;
+	let spanishTranscript = undefined;
 	let intervalId = null;
 	let englishVis = true;
 	let spanishVis = true;
@@ -182,7 +182,7 @@ async function handleEditComplete(event) {
                                     {line.text}
                                 </div>
                             {/if}
-                            {#if spanishVis}
+                            {#if spanishVis && spanishTranscript}
                                 <div class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={spanishTranscript[index].docID} data-start-sec={spanishTranscript[index].startSec} data-language="spanishTranscript"> 
                                     {spanishTranscript[index].text}
                                 </div>

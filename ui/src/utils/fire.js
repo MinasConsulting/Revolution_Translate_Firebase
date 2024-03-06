@@ -12,7 +12,6 @@ import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy,
 
 
 import firebaseConfig from '../.secrets/firebaseSecret.json'
-import otherSecrets from '../.secrets/otherSecrets.json'
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
