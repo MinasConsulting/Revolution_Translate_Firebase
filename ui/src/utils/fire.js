@@ -54,12 +54,9 @@ export class transcriptClass {
 
   async spanishTranslate() {
     const result = await deepLTranslate({ videoID: this.videoID })
-    this.spanishTranscript = result 
+    this.spanishTranscript = result.data
 
-  }
-
-
-
+}
 }
 
 export async function getVideos() {
@@ -102,7 +99,6 @@ export async function saveChange(event,videoID) {
 
     const docID = event.target.dataset.docid
     const langSource = event.target.dataset.language
-    console.log(langSource)
     const docRef = doc(db, 'messageVideos', videoID, langSource, docID)
     const currentDoc = await getDoc(docRef)
     const currentDocData = currentDoc.data()
@@ -126,56 +122,6 @@ export async function saveChange(event,videoID) {
 
     return newDocID.id
 
-}
-
-async function deepLExecute(deepLEnglish) {
-  const apiKey = otherSecrets.deepL
-  const apiUrl = 'https://api.deepl.com/v2/translate';
-
-  const requestData = {
-      auth_key: apiKey,
-      text: deepLEnglish,
-      source_lang: 'EN',
-      target_lang: 'ES',
-      split_sentences: 'nonewlines',
-      tag_handling: 'html',
-      formality: 'less'
-  };
-
-  try {
-      const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestData)
-      });
-
-      if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const responseData = await response.json();
-      return responseData.translations[0].text;
-  } catch (error) {
-      console.error('Error:', error);
-      // Handle error appropriately
-      return null;
-  }
-}
-
-
-function stampToSec(stamp) {
-    const components = stamp.split(",")
-
-    const hours = parseInt(components[0].split(":")[0]);
-    const minutes = parseInt(components[0].split(":")[1]);
-    const seconds = parseFloat(components[0].split(":")[2]);
-    const milliseconds = parseInt(components[1]);
-
-    // Convert to seconds and return the result
-    const totalSeconds = hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
-    return totalSeconds
 }
 
 

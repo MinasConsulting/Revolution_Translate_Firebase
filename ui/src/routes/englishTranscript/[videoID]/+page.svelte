@@ -12,13 +12,13 @@
 	let spanishTranscript;
 	let intervalId = null;
 	let englishVis = true;
-	let spanishVis = false;
+	let spanishVis = true;
 	let videoLink = null;
 
     onMount(async () => {
         const fetchTranscriptAndInitPlayer = async () => {
             await tsClass.init();
-            transcript = tsClass.englishTranscript;
+			transcript = tsClass.englishTranscript;
             spanishTranscript = tsClass.spanishTranscript;
             videoLink = tsClass.videoURL;
 
@@ -154,13 +154,13 @@ async function handleEditComplete(event) {
 
 <h1>English Transcript for Video {videoID}</h1>
 <menu>
-	<button on:click={() => tsClass.spanishTranslate()}>Translate</button>
-	<label for="textView">Choose a view:</label>
+	<button on:click={async () => {await tsClass.spanishTranslate(); spanishTranscript = tsClass.spanishTranscript;}}>Translate</button>
+	<!-- <label for="textView">Choose a view:</label>
 	<select name="textView" id="textView" on:change={handleVisChange}>
 		<option value="English Only">English Only</option>
 		<option value="Spanish Only">Spanish Only</option>
 		<option value="Combined">Combined</option>
-	</select>
+	</select> -->
 
 </menu>
 

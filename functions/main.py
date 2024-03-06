@@ -244,7 +244,9 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
 
     batch.commit()
 
-    response = json.dumps({"data":dataReturn})
+    completeData = _getTranscript(videoID)
+
+    response = json.dumps({"data":completeData['spanishTranscript']})
     # Return a response
     return https_fn.Response(response, status=200)
 
