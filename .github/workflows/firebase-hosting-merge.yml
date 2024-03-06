@@ -18,6 +18,9 @@ jobs:
         run: |
           mkdir -p ./ui/src/.secrets
           echo ${{ secrets.FIREBASE_SECRET }} | base64 --decode > ./ui/src/.secrets/firebaseSecret.json
+      - name: Decrypt otherSecrets.json
+        run: |
+          echo ${{ secrets.OTHER_SECRETS }} | base64 --decode > ./ui/src/.secrets/otherSecrets.json
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
