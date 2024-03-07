@@ -19,6 +19,9 @@
 
     onMount(async () => {
 
+        const loadingSpinner = document.querySelector('.loading-spinner');
+        loadingSpinner.style.display = 'flex';
+
         const getLogin = async () => {
             let authenticated = localStorage.getItem('authenticated')
             if (!authenticated) {
@@ -61,6 +64,8 @@
         }
 
         await fetchTranscriptAndInitPlayer();
+
+        loadingSpinner.style.display = 'none';
     });
 
   onDestroy(() => {
@@ -185,6 +190,10 @@ async function handleEditComplete(event) {
 </script>
 
 <h1>Transcript for {videoName}</h1>
+<div class="loading-spinner">
+    <div class="spinner"></div>
+</div>
+
 <menu>
 	<button on:click={handleTranslateClick} class:disabled={translateLock}>Translate</button>
 	<!-- <label for="textView">Choose a view:</label>
@@ -278,5 +287,30 @@ async function handleEditComplete(event) {
     color: #999; /* Optionally change text color */
     cursor: not-allowed; /* Optionally change cursor */
   }
+  .loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+  z-index: 999; /* Ensure the spinner is on top of other elements */
+}
+.spinner {
+  border: 5px solid rgba(0, 0, 0, 0.2);
+  border-top-color: #fff; /* White color for the spinning element */
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 </style>
 
