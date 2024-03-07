@@ -84,9 +84,9 @@
 	
 	for (var i = 0; i < transcript.length; i++) {
 		if (currentPosition >= transcript[i].startSec && currentPosition < transcript[i].endSec){
-			transcriptLine = transcript[i]
+            transcriptLine = transcript[i]
 			if (i < centerFactor) {
-				scrollLine = transcript[i]
+				scrollLine = transcript[0]
 			}
 			else {
 				scrollLine = transcript[i-centerFactor]
