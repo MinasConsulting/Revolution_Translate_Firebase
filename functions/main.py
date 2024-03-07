@@ -149,8 +149,8 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
                 endTime = word['end_time']
 
                 dataDict['SRTID'] = SRTID
-                dataDict['startSec'] = startTime['seconds'] + startTime.get('nanos',0)*1e-9
-                dataDict['endSec'] = endTime['seconds'] + endTime.get('nanos',0)*1e-9
+                dataDict['startSec'] = startTime.get('seconds',0) + startTime.get('nanos',0)*1e-9
+                dataDict['endSec'] = endTime.get('seconds',0) + endTime.get('nanos',0)*1e-9
                 dataDict['startTime'] = _seconds_to_formatted_time(dataDict['startSec'])
                 dataDict['endTime'] = _seconds_to_formatted_time(dataDict['endSec'])
                 dataDict['text'] = thisText
