@@ -84,7 +84,7 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
     file_name = event.data.name
     file_uri = f"gs://{bucket_name}/{file_name}"
     file = file_name.split(r"/")[-1].split(".")[0]
-    videoLink = f"gs://{bucket_name}/transcoded/{file}/hd.mp4"
+    videoLink = f"gs://{bucket_name}/transcoded/{file}/sd.mp4"
 
     content_type = event.data.content_type
 
