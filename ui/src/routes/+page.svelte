@@ -1,8 +1,12 @@
 <script>
-    import { getVideos } from '../utils/fire.js';
+    import { getVideos, uploadVideo } from '../utils/fire.js';
     import { onMount } from 'svelte';
 
+
     let videoInfoPromise = getVideos()
+    let selectedFile = null;
+    let uploadProgress = 0;
+
     onMount(() => {
         let authenticated = localStorage.getItem('authenticated')
         if (!authenticated) {
@@ -12,11 +16,40 @@
         }
     });
 
+    const handleFileChange = (event) => {
+        selectedFile = event.target.files[0];
+    };
+
+
+    const handleUpload = async () => {
+        if (selectedFile) {
+            const updateProgress = (progress) => {
+            uploadProgress = progress;
+            };
+
+            try {
+                await uploadVideo(selectedFile, updateProgress);
+                console.log('File uploaded successfully!');
+                // Handle successful upload and utilize the downloadURL if needed
+            } catch (error) {
+                console.error('Upload failed:', error);
+                // Handle upload error (e.g., display an error message)
+            }
+        }
+        };
+
 </script>
 
 {#await videoInfoPromise then videoInfo}
 
     <h1>Welcome to Revolution Translate</h1>
+
+    <input type="file" accept="*" on:change={handleFileChange}>
+    <button on:click={handleUpload}>Upload</button>
+
+    {#if uploadProgress > 0}
+    <p>Uploading... {uploadProgress}%</p>
+    {/if}
     
         {#each [...videoInfo] as [videoID, value] (videoID)}
         <div class="parent-container">

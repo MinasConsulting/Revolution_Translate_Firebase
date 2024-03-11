@@ -8,5 +8,8 @@ service firebase.storage {
     match /transcoded/{allFiles=**} {
       allow read;
     }
+    match /videos/{allFiles=**} {
+      allow write;
+    }
   }
 }

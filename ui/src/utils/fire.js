@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import {getStorage, getDownloadURL, ref } from "firebase/storage"
+import {getStorage, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage"
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy, query, where } from "firebase/firestore"
 // import { Translator } from 'deepl-node';
@@ -131,3 +131,31 @@ export async function saveChange(event,videoID) {
 }
 
 
+export async function uploadVideo (file, onProgress) {
+  const storageRef = ref(storage,"videos/test.json");
+
+  try {
+    const uploadTask = uploadBytesResumable(storageRef, file)
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        // Provide progress updates to the onProgress callback function
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        onProgress(progress);
+      },
+      (error) => {
+        console.error('Upload failed:', error);
+        throw error; // Re-throw the error for handling in the Svelte component
+      },
+      async () => {
+        console.log('File uploaded successfully!');
+      }
+    );
+
+    // Alternatively, you can await the completion without onProgress:
+    // await uploadTask;
+  } catch (error) {
+    console.error('Upload failed:', error);
+    throw error; // Re-throw the error for handling in the Svelte component
+  }
+}
