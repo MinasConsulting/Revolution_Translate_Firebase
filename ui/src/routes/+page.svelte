@@ -1,11 +1,12 @@
 <script>
-    import { getVideos, uploadVideo } from '../utils/fire.js';
+    import { getVideos, uploadVideo, cancelUpload } from '../utils/fire.js';
     import { onMount } from 'svelte';
 
 
     let videoInfoPromise = getVideos()
     let selectedFile = null;
     let uploadProgress = 0;
+    
 
     onMount(() => {
         let authenticated = localStorage.getItem('authenticated')
@@ -22,21 +23,23 @@
 
 
     const handleUpload = async () => {
-        if (selectedFile) {
-            const updateProgress = (progress) => {
-            uploadProgress = progress;
-            };
+    if (selectedFile) {
+      const updateProgress = (progress) => {
+        uploadProgress = progress;
+      };
+      try {
+        await uploadVideo(selectedFile, updateProgress);
+      } catch (error) {
+        console.error('Upload failed:', error);
+        // Handle upload error (e.g., display an error message)
+      }
+    }
+  };
 
-            try {
-                await uploadVideo(selectedFile, updateProgress);
-                console.log('File uploaded successfully!');
-                // Handle successful upload and utilize the downloadURL if needed
-            } catch (error) {
-                console.error('Upload failed:', error);
-                // Handle upload error (e.g., display an error message)
-            }
-        }
-        };
+  const handleCancel = () => {
+    uploadProgress = -1
+    cancelUpload()
+  }
 
 </script>
 
@@ -48,10 +51,13 @@
         <input type="file" accept="video/*" on:change={handleFileChange}>
         <button on:click={handleUpload}>Upload</button>
         {#if uploadProgress > 0 && uploadProgress < 100}
+            <button on:click={handleCancel}>Cancel Upload</button>
             <p>Uploading... {uploadProgress}%</p>
         {:else if uploadProgress == 100}
             <p>Upload complete.<br>
                 Video will be available in 15-30 minutes.</p>
+        {:else if uploadProgress == -1}
+            <p>Upload cancelled.</p>
         {/if}
     </div>
 </div>

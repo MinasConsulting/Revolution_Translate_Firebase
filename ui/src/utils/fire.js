@@ -23,6 +23,8 @@ const functions = getFunctions(app);
 const deepLTranslate = httpsCallable(functions, 'deepLTranslate');
 const getTranscriptFunc = httpsCallable(functions, 'getTranscript');
 
+let currentUploadTask = null;
+
 export class transcriptClass {
   constructor(videoID){
     this.videoID = videoID
@@ -131,31 +133,38 @@ export async function saveChange(event,videoID) {
 }
 
 
-export async function uploadVideo (file, onProgress) {
-  const storageRef = ref(storage,"videos/test.json");
+export async function uploadVideo(file, onProgress) {
+
+  const storageRef = ref(storage, `videos/${file.name}`);
 
   try {
-    const uploadTask = uploadBytesResumable(storageRef, file)
+    currentUploadTask = uploadBytesResumable(storageRef, file);
 
-    uploadTask.on('state_changed',
+    currentUploadTask.on(
+      "state_changed",
       (snapshot) => {
         // Provide progress updates to the onProgress callback function
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
         onProgress(progress.toFixed(2));
       },
       (error) => {
-        console.error('Upload failed:', error);
+        console.error("Upload failed:", error);
         throw error; // Re-throw the error for handling in the Svelte component
-      },
-      async () => {
-        console.log('File uploaded successfully!');
       }
     );
 
     // Alternatively, you can await the completion without onProgress:
     // await uploadTask;
   } catch (error) {
-    console.error('Upload failed:', error);
+    console.error("Upload failed:", error);
     throw error; // Re-throw the error for handling in the Svelte component
+  }
+}
+
+export function cancelUpload() {
+  if (currentUploadTask) {
+    currentUploadTask.cancel();
+    currentUploadTask = null;
+    console.log("Upload canceled");
   }
 }
