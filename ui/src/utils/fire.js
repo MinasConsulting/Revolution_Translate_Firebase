@@ -141,7 +141,7 @@ export async function uploadVideo (file, onProgress) {
       (snapshot) => {
         // Provide progress updates to the onProgress callback function
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        onProgress(progress);
+        onProgress(progress.toFixed(2));
       },
       (error) => {
         console.error('Upload failed:', error);

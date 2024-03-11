@@ -42,14 +42,19 @@
 
 {#await videoInfoPromise then videoInfo}
 
+<div class="header-container">
     <h1>Welcome to Revolution Translate</h1>
-
-    <input type="file" accept="*" on:change={handleFileChange}>
-    <button on:click={handleUpload}>Upload</button>
-
-    {#if uploadProgress > 0}
-    <p>Uploading... {uploadProgress}%</p>
-    {/if}
+    <div class="upload-container">
+        <input type="file" accept="video/*" on:change={handleFileChange}>
+        <button on:click={handleUpload}>Upload</button>
+        {#if uploadProgress > 0 && uploadProgress < 100}
+            <p>Uploading... {uploadProgress}%</p>
+        {:else if uploadProgress == 100}
+            <p>Upload complete.<br>
+                Video will be available in 15-30 minutes.</p>
+        {/if}
+    </div>
+</div>
     
         {#each [...videoInfo] as [videoID, value] (videoID)}
         <div class="parent-container">
@@ -104,5 +109,20 @@
     width: 250px;
     height: 250px;
 }
+.header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 2px solid white;
+        padding: 10px;
+    }
+
+    .upload-container {
+        display: flex;
+        flex-direction: column; /* Render items vertically */
+        gap: 5px;
+        border: 1px solid black; /* Add border to upload container */
+        padding: 10px; /* Optional: Add padding for better appearance */
+    }
 
 </style>
