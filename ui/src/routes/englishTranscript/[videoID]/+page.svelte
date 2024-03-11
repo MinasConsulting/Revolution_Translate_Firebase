@@ -47,7 +47,8 @@
                 sources: [{
                     src: videoLink,
                     type: 'video/mp4'
-                }]
+                }],
+                playbackRates: [0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.05, 1.1, 1.15, 1.2, 1.25]
             });
 
 
@@ -213,7 +214,7 @@ async function handleEditComplete(event) {
 <div class="transcript-box">
     {#if transcript}
         <ul>
-            {#each transcript as line, index (line.startSec)}
+            {#each transcript as line, index}
                 <li data-start-sec={line.startSec} style="list-style: none"> 
                     <div class="time-and-text">
                         <div class="startTime-box">{line.startTime}</div> 

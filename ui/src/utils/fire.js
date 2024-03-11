@@ -96,6 +96,19 @@ export async function saveChange(event,videoID) {
     const currentDoc = await getDoc(docRef)
     const currentDocData = currentDoc.data()
 
+    const parentRef = collection(db, 'messageVideos', videoID, langSource)
+    const parentQuery = query(parentRef, where("parentDoc","==",docID))
+    const querySnapshot = await getDocs(parentQuery) 
+
+    if (querySnapshot.docs.length > 0) {
+      const thisDocData = querySnapshot.docs[0].data()
+      console.log("New edit not saving")
+      alert("Newer edit detected and loaded. Please re edit")
+      event.target.textContent = thisDocData.text
+      return querySnapshot.docs[0].id
+    }
+
+
     if (currentDocData.text === event.target.textContent) {
       console.log("No Changes")
       return docID
