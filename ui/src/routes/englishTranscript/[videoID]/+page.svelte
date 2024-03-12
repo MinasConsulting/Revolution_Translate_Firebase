@@ -231,10 +231,14 @@ async function handleEditComplete(event) {
 <menu>
 	<button on:click={handleTranslateClick} class:disabled={translateLock}>Translate</button>
     <button style="float:right" on:click={e => fontSize++}>Increase font size</button>
-    <button style="float:right" on:click={e => fontSize--}>Decrease font size</button>
-    <input id="centerFactor" style= "float:right; width: 3ch; margin-right:10px" bind:value={centerFactor}/>
-    <label for="centerFactor" style="float:right; margin-right:5px">Scroll buffer:</label>
+    <button style="float:right; margin-right:5px" on:click={e => fontSize--}>Decrease font size</button>
     <button style="float:right; margin-right:5px;" on:click={resetShading}>Reset Shading</button>
+    <select id="centerFactor" style="float:right; margin-right: 5px" bind:value={centerFactor}>
+        {#each [...Array(9).keys()] as i}
+          <option value={i}>{i}</option>
+        {/each}
+      </select>
+    <label for="centerFactor" style="float:right; margin-right:5px">Scroll buffer:</label>
 	<!-- <label for="textView">Choose a view:</label>
 	<select name="textView" id="textView" on:change={handleVisChange}>
 		<option value="English Only">English Only</option>
@@ -248,7 +252,12 @@ async function handleEditComplete(event) {
 <div class="video-container">
 	<video id="my-video" class="video-js" controls preload="auto" style="width:100%"></video>
     <button style= "float:right" on:click={rewindClick}>Rewind</button>
-    <input style= "float:right; width: 2ch" bind:value={rewindSec}/>
+    <select style="float:right; margin-right: 5px" bind:value={rewindSec}>
+        {#each [2,5,7,10,12,15] as i}
+          <option value={i}>{i}</option>
+        {/each}
+      </select>
+      
 </div>
 
 <div class="transcript-box">
