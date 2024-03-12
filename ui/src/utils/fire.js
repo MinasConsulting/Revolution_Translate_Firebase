@@ -107,13 +107,24 @@ export async function saveChange(event,videoID) {
       console.log("New edit not saving")
       alert("Newer edit detected and loaded. Please re edit")
       event.target.textContent = thisDocData.text
-      return querySnapshot.docs[0].id
+      return {"docID":querySnapshot.docs[0].id,"positionScale":0}
     }
 
 
     if (currentDocData.text === event.target.textContent) {
       console.log("No Changes")
-      return docID
+      return {"docID":docID,"positionScale":0}
+    }
+
+    const currentTextArray = currentDocData.text.split(" ")
+    const newTextArray = event.target.textContent.split(" ")
+    let positionScale = 0
+
+    for (var i = 0; i < newTextArray.length; i++){
+      if (currentTextArray[i] !== newTextArray[i]){
+        positionScale = i/newTextArray.length
+        break
+      }
     }
 
     currentDocData.currentEdit = true
@@ -128,7 +139,7 @@ export async function saveChange(event,videoID) {
 
     await setDoc(docRef, { currentEdit: false }, {merge: true})
 
-    return newDocID.id
+    return {"docID":newDocID.id,"positionScale":positionScale}
 
 }
 
