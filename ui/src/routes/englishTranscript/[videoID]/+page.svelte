@@ -16,6 +16,7 @@
 	let spanishVis = true;
 	let videoLink = null;
     let translateLock = false;
+    let rewindSec = 10;
 
     onMount(async () => {
 
@@ -188,6 +189,10 @@ async function handleEditComplete(event) {
             }
         } 
     }
+
+    function rewindClick () {
+        player.currentTime(player.currentTime() - rewindSec);
+    }
 </script>
 
 <h1>Transcript for {videoName}</h1>
@@ -209,6 +214,8 @@ async function handleEditComplete(event) {
 
 <div class="video-container">
 	<video id="my-video" class="video-js" controls preload="auto" style="width:100%"></video>
+    <button style= "float:right" on:click={rewindClick}>Rewind</button>
+    <input style= "float:right; width: 2ch" bind:value={rewindSec}/>
 </div>
 
 <div class="transcript-box">
@@ -275,13 +282,6 @@ async function handleEditComplete(event) {
     .spanish-line {
         font-family: Arial, sans-serif; /* Set font family for Spanish lines */
         font-weight: bold; /* Set font weight to bold for a blockier style */
-    }
-    .video-container {
-        display: flex; /* Use flexbox */
-        justify-content: center; /* Center items horizontally */
-        align-items: center; /* Center items vertically */
-        width: 35%;
-       /* height: 100vh;  Use 100% of the viewport height */
     }
     .disabled {
     background-color: #ccc; /* Grey out the button */
