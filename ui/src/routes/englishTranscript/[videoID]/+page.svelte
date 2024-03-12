@@ -17,6 +17,8 @@
 	let videoLink = null;
     let translateLock = false;
     let rewindSec = 10;
+    let fontSize = 16;
+    let centerFactor = 5;
 
     onMount(async () => {
 
@@ -82,7 +84,6 @@
     const currentPosition = player.currentTime();
 	let transcriptLine = null
 	let scrollLine = null
-	const centerFactor = 5
 	
 	for (var i = 0; i < transcript.length; i++) {
 		if (currentPosition >= transcript[i].startSec && currentPosition < transcript[i].endSec){
@@ -202,6 +203,10 @@ async function handleEditComplete(event) {
 
 <menu>
 	<button on:click={handleTranslateClick} class:disabled={translateLock}>Translate</button>
+    <button style="float:right" on:click={e => fontSize++}>Increase font size</button>
+    <button style="float:right" on:click={e => fontSize--}>Decrease font size</button>
+    <input id="centerFactor" style= "float:right; width: 3ch; margin-right:10px" bind:value={centerFactor}/>
+    <label for="centerFactor" style="float:right; margin-right:5px">Scroll buffer:</label>
 	<!-- <label for="textView">Choose a view:</label>
 	<select name="textView" id="textView" on:change={handleVisChange}>
 		<option value="English Only">English Only</option>
@@ -227,12 +232,12 @@ async function handleEditComplete(event) {
                         <div class="startTime-box">{line.startTime}</div> 
                         <div class="text-container">
                             {#if englishVis}
-                                <div class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-language="englishTranscript"> 
+                                <div style="font-size: {fontSize}px" class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-language="englishTranscript"> 
                                     {line.text}
                                 </div>
                             {/if}
                             {#if spanishVis && spanishTranscript}
-                                <div class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={spanishTranscript[index].docID} data-start-sec={spanishTranscript[index].startSec} data-language="spanishTranscript"> 
+                                <div style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={spanishTranscript[index].docID} data-start-sec={spanishTranscript[index].startSec} data-language="spanishTranscript"> 
                                     {spanishTranscript[index].text}
                                 </div>
                             {/if}
