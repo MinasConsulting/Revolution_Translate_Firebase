@@ -20,6 +20,9 @@
     let fontSize = 16;
     let centerFactor = 5;
 
+    const yellowColor = "#fcf756"
+    const blueColor = "darkturquoise"
+
     onMount(async () => {
 
         const loadingSpinner = document.querySelector('.loading-spinner');
@@ -77,17 +80,31 @@
 		if (player) player.dispose(); // Dispose of the player instance
 	});
 
+  function resetShading() {
+    const transcriptBox = document.querySelector('.transcript-box');
+    for (var i = 0; i < transcript.length; i++) {
+        const transcriptLineElement = transcriptBox.querySelector(`li[data-start-sec="${transcript[i].startSec}"]`); 
+        transcriptLineElement.style.backgroundColor = "transparent"
+	}
 
+  }
 
   function getPlaybackPosition() {
 	if (player && player.currentTime() > 0 && !player.paused()) {
     const currentPosition = player.currentTime();
 	let transcriptLine = null
 	let scrollLine = null
+    let prevLine = null
 	
 	for (var i = 0; i < transcript.length; i++) {
 		if (currentPosition >= transcript[i].startSec && currentPosition < transcript[i].endSec){
             transcriptLine = transcript[i]
+            if (i > 0) {
+                prevLine = transcript[i-1]
+            }
+            else {
+                prevLine = transcript[0]
+            }
 			if (i < centerFactor) {
 				scrollLine = transcript[0]
 			}
@@ -103,10 +120,16 @@
 		if (transcriptBox) {
 			const transcriptLineElement = transcriptBox.querySelector(`li[data-start-sec="${transcriptLine.startSec}"]`); // Select transcript line element
 			const scrollLineElement = transcriptBox.querySelector(`li[data-start-sec="${scrollLine.startSec}"]`); // Select transcript line element
+            const prevLineElement = transcriptBox.querySelector(`li[data-start-sec="${prevLine.startSec}"]`); // Select transcript line element
 
 			if (transcriptLineElement) {
 				// Apply highlighting to the current line
-				transcriptLineElement.style.backgroundColor = 'yellow';
+                if (prevLineElement && prevLineElement.style.backgroundColor == blueColor){
+                        prevLineElement.style.backgroundColor = yellowColor
+                    }
+                
+
+				transcriptLineElement.style.backgroundColor = blueColor;
 
 				const transcriptBox = document.querySelector('.transcript-box');
 				const scrollTop = transcriptBox.scrollTop; // Current scroll position
@@ -207,6 +230,7 @@ async function handleEditComplete(event) {
     <button style="float:right" on:click={e => fontSize--}>Decrease font size</button>
     <input id="centerFactor" style= "float:right; width: 3ch; margin-right:10px" bind:value={centerFactor}/>
     <label for="centerFactor" style="float:right; margin-right:5px">Scroll buffer:</label>
+    <button style="float:right; margin-right:5px;" on:click={resetShading}>Reset Shading</button>
 	<!-- <label for="textView">Choose a view:</label>
 	<select name="textView" id="textView" on:change={handleVisChange}>
 		<option value="English Only">English Only</option>
