@@ -305,8 +305,10 @@ def _getTranscript(videoID):
     collection_names = [collection.id for collection in collections]
 
     for name in collection_names:
+        if name == 'words':
+            continue
         transcript_ref = db.collection("messageVideos").document(videoID).collection(name)
-        transcript_query = transcript_ref.where("currentEdit", "==", True).order_by("SRTID")
+        transcript_query = transcript_ref.where("currentEdit", "==", True).order_by("startSec")
         transcript_fire = transcript_query.get()
         results = []
         for res in transcript_fire:
