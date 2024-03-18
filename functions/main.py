@@ -124,7 +124,8 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
                 'text':'',
                 'genUser':'Google Video Intellegence Annotate',
                 'currentEdit':True}
-
+    
+    theseWords = []
 
     SRTID = 0
     for x in result['annotation_results'][0]['speech_transcriptions']:
@@ -134,6 +135,12 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
         if thisIter is None:
             continue
         for index, word in enumerate(thisIter):
+            theseWords.append({
+                'wordStartSec':word['start_time'].get('seconds',0)+word['start_time'].get('nanos',0)*1e-9,
+                'wordEndSec':word['end_time'].get('seconds',0)+word['end_time'].get('nanos',0)*1e-9,
+                'word':word['word']
+            })
+
             if thisText == "":
                 startTime = word['start_time']
 
@@ -157,11 +164,15 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
 
                 doc_ref = db.collection("messageVideos").document(videoID).collection("englishTranscript").document()
                 batch.set(doc_ref,dataDict.copy())
+                for k in theseWords:
+                    words_ref = root_doc_ref.collection("words").document()
+                    batch.set(words_ref,k)
 
                 thisText = ""
                 SRTID += 1
-    print(f"{videoName} processing complete.")
+                theseWords = []
     batch.commit()
+    print(f"{videoName} processing complete.")
 
 
 def _seconds_to_formatted_time(total_seconds: float) -> str:
