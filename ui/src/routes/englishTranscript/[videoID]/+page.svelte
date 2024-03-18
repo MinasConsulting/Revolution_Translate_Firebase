@@ -4,13 +4,12 @@
 	import { onDestroy, onMount } from 'svelte';
 	import videojs from 'video.js';
 	import 'video.js/dist/video-js.css'; // Import Video.js CSS
+    import { englishTranscript, spanishTranscript } from '../../../utils/stores.js';
 
 	let videoID = $page.params.videoID;
     let videoName = null;
 	let player;
 	let tsClass = new transcriptClass(videoID)
-	let transcript = null;
-	let spanishTranscript = undefined;
 	let intervalId = null;
 	let englishVis = true;
 	let spanishVis = true;
@@ -38,9 +37,8 @@
         }
         const fetchTranscriptAndInitPlayer = async () => {
             await tsClass.init();
-			transcript = tsClass.englishTranscript;
-            spanishTranscript = tsClass.spanishTranscript;
-            if (spanishTranscript) {
+
+            if ($spanishTranscript.length>0) {
                 translateLock = true;
             }
             videoLink = tsClass.videoURL;
@@ -96,20 +94,20 @@
 	let scrollLine = null
     let prevLine = null
 	
-	for (var i = 0; i < transcript.length; i++) {
-		if (currentPosition >= transcript[i].startSec && currentPosition < transcript[i].endSec){
-            transcriptLine = transcript[i]
+	for (var i = 0; i < $englishTranscript.length; i++) {
+		if (currentPosition >= $englishTranscript[i].startSec && currentPosition < $englishTranscript[i].endSec){
+            transcriptLine = $englishTranscript[i]
             if (i > 0) {
-                prevLine = transcript[i-1]
+                prevLine = $englishTranscript[i-1]
             }
             else {
-                prevLine = transcript[0]
+                prevLine = $englishTranscript[0]
             }
 			if (i < centerFactor) {
-				scrollLine = transcript[0]
+				scrollLine = $englishTranscript[0]
 			}
 			else {
-				scrollLine = transcript[i-centerFactor]
+				scrollLine = $englishTranscript[i-centerFactor]
 			}
 			break;
 		}
@@ -181,6 +179,8 @@ async function handleEditComplete(event) {
         player.play();
     }
 
+    tsClass.init()
+
 	// Perform necessary actions like saving changes
 	// ...
 
@@ -208,12 +208,11 @@ async function handleEditComplete(event) {
     }
 
     async function handleTranslateClick() {
-        if (spanishTranscript == undefined) {
+        if ($spanishTranscript.length===0) {
             const confirmation = window.confirm('Are you sure? All English edits must be complete before proceeding with AI translation.');
             if (confirmation) {
                 translateLock = true
                 await tsClass.spanishTranslate();
-                spanishTranscript = tsClass.spanishTranscript;
             }
         } 
     }
@@ -239,12 +238,12 @@ async function handleEditComplete(event) {
         {/each}
       </select>
     <label for="centerFactor" style="float:right; margin-right:5px">Scroll buffer:</label>
-	<!-- <label for="textView">Choose a view:</label>
+	<label for="textView">Choose a view:</label>
 	<select name="textView" id="textView" on:change={handleVisChange}>
+        <option value="Combined">Combined</option>
 		<option value="English Only">English Only</option>
 		<option value="Spanish Only">Spanish Only</option>
-		<option value="Combined">Combined</option>
-	</select> -->
+	</select>
 
 </menu>
 
@@ -261,9 +260,9 @@ async function handleEditComplete(event) {
 </div>
 
 <div class="transcript-box">
-    {#if transcript}
+    {#if $englishTranscript.length > 0}
         <ul>
-            {#each transcript as line, index}
+            {#each $englishTranscript as line, index}
                 <li data-start-sec={line.startSec} style="list-style: none"> 
                     <div class="time-and-text">
                         <div class="startTime-box">{line.startTime}</div> 
@@ -273,9 +272,9 @@ async function handleEditComplete(event) {
                                     {line.text}
                                 </div>
                             {/if}
-                            {#if spanishVis && spanishTranscript}
-                                <div style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={spanishTranscript[index].docID} data-start-sec={spanishTranscript[index].startSec} data-end-sec={spanishTranscript[index].endSec} data-language="spanishTranscript"> 
-                                    {spanishTranscript[index].text}
+                            {#if spanishVis && $spanishTranscript.length > 0}
+                                <div style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript"> 
+                                    {$spanishTranscript[index].text}
                                 </div>
                             {/if}
                         </div>

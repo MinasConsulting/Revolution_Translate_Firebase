@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import {getStorage, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage"
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy, query, where } from "firebase/firestore"
+import { englishTranscript, spanishTranscript } from './stores.js';
 // import { Translator } from 'deepl-node';
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -34,14 +35,7 @@ export class transcriptClass {
   }
 
   async init () {
-    const transResult = await getTranscriptFunc({ videoID: this.videoID })
-    if ('englishTranscript' in transResult.data){
-      this.englishTranscript = transResult.data.englishTranscript
-    }
-
-    if ('spanishTranscript' in transResult.data){
-      this.spanishTranscript = transResult.data.spanishTranscript
-    }
+    this.refreshTranscript()
 
     // console.log(this.englishTranscript)
     // console.log(this.spanishTranscript)
@@ -51,6 +45,19 @@ export class transcriptClass {
 
     this.videoURL = await getDownloadURL(ref(storage, videoData.videoLink))
 
+  }
+
+  async refreshTranscript () {
+    const transResult = await getTranscriptFunc({ videoID: this.videoID })
+    if ('englishTranscript' in transResult.data){
+      this.englishTranscript = transResult.data.englishTranscript
+      englishTranscript.set(this.englishTranscript)
+    }
+
+    if ('spanishTranscript' in transResult.data){
+      this.spanishTranscript = transResult.data.spanishTranscript
+      spanishTranscript.set(this.spanishTranscript)
+    }
   }
 
   async spanishTranslate() {
