@@ -151,6 +151,8 @@
   }
 
   function handleDoubleClick(event) {
+    if(translateLock && event.target.dataset.language === "englishTranscript") {return}
+    
 	player.pause();
 	// Set the span to editable on double click
 	event.target.contentEditable = "true";
