@@ -152,7 +152,7 @@
 
   function handleDoubleClick(event) {
     if(translateLock && event.target.dataset.language === "englishTranscript") {return}
-    
+
 	player.pause();
 	// Set the span to editable on double click
 	event.target.contentEditable = "true";
@@ -173,15 +173,13 @@ async function handleEditComplete(event) {
 	const newDocID = await saveChange(event,videoID)
     console.log(newDocID)
 
-	event.target.dataset.docid = newDocID.docID
-
     const playPosition = startSec + (endSec-startSec)*newDocID.positionScale
     if(playPosition !== startSec){
         player.currentTime(playPosition)
         player.play();
     }
 
-    tsClass.init()
+    tsClass.refreshTranscript()
 
 	// Perform necessary actions like saving changes
 	// ...
@@ -240,12 +238,14 @@ async function handleEditComplete(event) {
         {/each}
       </select>
     <label for="centerFactor" style="float:right; margin-right:5px">Scroll buffer:</label>
-	<label for="textView">Choose a view:</label>
-	<select name="textView" id="textView" on:change={handleVisChange}>
-        <option value="Combined">Combined</option>
-		<option value="English Only">English Only</option>
-		<option value="Spanish Only">Spanish Only</option>
-	</select>
+    {#if $spanishTranscript.length > 0}
+        <label for="textView">Choose a view:</label>
+        <select name="textView" id="textView" on:change={handleVisChange}>
+            <option value="Combined">Combined</option>
+            <option value="English Only">English Only</option>
+            <option value="Spanish Only">Spanish Only</option>
+        </select>
+    {/if}
 
 </menu>
 

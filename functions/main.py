@@ -18,6 +18,7 @@ from google.cloud.video import transcoder_v1
 from google.cloud.video.transcoder_v1.services.transcoder_service import (
     TranscoderServiceClient,
 )
+from rapidfuzz import fuzz
 
 app = initialize_app()
 db = firestore.client()
@@ -144,7 +145,7 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
             if thisText == "":
                 startTime = word['start_time']
 
-            punctCheck = any(char in word['word'] for char in [".",',','!','?'])
+            punctCheck = any(char in word['word'] for char in [".",'!','?'])
 
             if index == len(thisIter) - 1 and not punctCheck:
                 word['word'] += "."
@@ -332,3 +333,163 @@ def stampToSec(stamp):
 
     totalSeconds = hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
     return totalSeconds
+
+@https_fn.on_request(
+    cors=options.CorsOptions(
+        cors_origins=[
+            "http://localhost:5173",  # Add your specific origins here
+            r"https://revolutiontranslate\.web\.app",
+            r"revolutiontranslate\.web\.app$"
+        ],
+        cors_methods=["POST"],  # Specify allowed methods
+    )
+)
+def saveChange(req: https_fn.Request) -> https_fn.Response:
+    # Check if the request method is POST
+    if req.method != "POST":
+        return https_fn.Response("Method not allowed", status=405)
+
+    # Parse the JSON data from the request body
+    try:
+        data = json.loads(req.data)
+        data = data['data']
+    except Exception as e:
+        return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
+    
+    originText_ref = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document(data['originDocID'])
+    originText_results = originText_ref.get()
+    originTextDict = originText_results.to_dict()
+    originTextDict['parentDoc'] = originText_results.id
+
+
+    newTextSentences = _textToSentences(originTextDict['text'],data['newText'])
+
+    if len(newTextSentences) == 1 or data['langSource'] == 'spanishTranscript':
+        _saveNoSplit(data,originTextDict)
+        return https_fn.Response(json.dumps({"data":"None"}), status=200)
+    
+    currentStartSec = originTextDict['startSec']
+
+    words_ref = db.collection("messageVideos").document(data['videoID']).collection("words")
+    query = words_ref.where(filter=firestore.FieldFilter("wordStartSec",">=",currentStartSec)).where(filter=firestore.FieldFilter("wordStartSec","<",originTextDict['endSec'])).order_by('wordStartSec')
+
+    # Get documents matching the query
+    origin_words = query.get()
+
+    for sentence in newTextSentences:
+        
+        originalTextSegments, thisMeta = _all_contiguous_segments_by_words_list(origin_words)
+        fuzzList = []
+        for seg in originalTextSegments:
+            fuzzList.append(fuzz.ratio(sentence,seg))
+
+        maxIndex = fuzzList.index(max(fuzzList))
+        print("********")
+        print("N:"+sentence)
+
+        newStart = thisMeta[maxIndex]['docSlice'][0].to_dict()['wordStartSec']
+        newEnd = thisMeta[maxIndex]['docSlice'][-1].to_dict()['wordEndSec']
+        print(f"NStart:{newStart}")
+        print(f"NEnd:{newEnd}")
+
+        
+        print("O:"+originalTextSegments[maxIndex])
+        print(max(fuzzList))
+        print(maxIndex)
+
+        newSplitDoc = originTextDict.copy()
+
+        newSplitDoc['currentEdit'] = True
+        newSplitDoc['genUser'] = 'Firebase App'
+        newSplitDoc['genTime'] = datetime.now()
+        newSplitDoc['text'] = sentence
+        newSplitDoc['startSec'] = newStart
+        newSplitDoc['endSec'] = newEnd
+        newSplitDoc['startTime'] = _seconds_to_formatted_time(newStart)
+        newSplitDoc['endTime'] = _seconds_to_formatted_time(newEnd)
+
+        new_doc_ref = db.collection("messageVideos").document(data['videoID']).collection("englishTranscript").document()
+        new_doc_ref.set(newSplitDoc)
+
+        currentStartSec = newEnd
+        query = words_ref.where(filter=firestore.FieldFilter("wordStartSec",">=",currentStartSec)).where(filter=firestore.FieldFilter("wordStartSec","<",originTextDict['endSec'])).order_by('wordStartSec')
+
+        # Get documents matching the query
+        origin_words = query.get()
+
+    oldDocRef = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document(originTextDict['parentDoc'])
+    oldDocRef.set({"currentEdit": False},merge=True)
+
+    return https_fn.Response(json.dumps({"data":"None"}), status=200)
+
+
+def _saveNoSplit(data,originTextDict):
+    updateDict = originTextDict.copy()
+
+    updateDict['currentEdit'] = True
+    updateDict['genUser'] = 'Firebase App'
+    updateDict['genTime'] = datetime.now()
+    updateDict['text'] = data['text']
+
+    newDocRef = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document()
+    newDocRef.set(updateDict)
+
+    oldDocRef = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document(updateDict['parentDoc'])
+    oldDocRef.set({"currentEdit": False},merge=True)
+
+def _all_contiguous_segments_by_words_list(docs):
+  """
+  This function generates all possible contiguous segments of words in a text,
+  where words are separated by whitespace.
+
+  Args:
+      text: The input text string.
+
+  Returns:
+      A list of lists, where each inner list represents a contiguous segment
+      of words from the original text.
+  """
+  segments = []
+  words = []
+  segMeta = []
+    
+
+  for doc in docs:
+      words.append(doc.to_dict()['word'])
+
+
+  # Loop through all starting positions in the list of words
+  for start in range(len(words)):
+    # Loop through all possible ending positions from start onwards
+    for end in range(start + 1, len(words) + 1):
+      # Extract the segment (sublist of words)
+      segment = " ".join(words[start:end])
+      segments.append(segment)  # No need for strip() as words are already split
+      segMeta.append({'docSlice':docs[start:end],'startIndex':start,'endIndex':end})
+      # print(segMeta)
+
+  return segments,segMeta
+
+def _textToSentences(originText,newText):
+    originalTextList = originText.split(" ")
+    # Define sentence ending punctuation
+    sentence_enders = ".!?"
+
+    # Split the text and include the punctuation in each sentence
+    # Initialize empty list for sentences
+    newTextSentences = []
+    current_sentence = ""
+    for char in newText:
+        # Append characters to current sentence
+        current_sentence += char
+        # Check if character is sentence ender
+        if char in sentence_enders:
+            # Add complete sentence to list and reset current sentence
+            newTextSentences.append(current_sentence)
+            current_sentence = ""
+
+    # Add the last sentence if it exists (no trailing punctuation)
+    if current_sentence and current_sentence.strip() != "":
+        newTextSentences.append(current_sentence)
+
+    return newTextSentences

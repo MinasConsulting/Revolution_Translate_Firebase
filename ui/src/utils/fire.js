@@ -23,6 +23,7 @@ const storage = getStorage(app)
 const functions = getFunctions(app);
 const deepLTranslate = httpsCallable(functions, 'deepLTranslate');
 const getTranscriptFunc = httpsCallable(functions, 'getTranscript');
+const saveChangeCall = httpsCallable(functions, 'saveChange')
 
 let currentUploadTask = null;
 
@@ -135,19 +136,12 @@ export async function saveChange(event,videoID) {
       }
     }
 
-    currentDocData.currentEdit = true
-    currentDocData.parentDoc = docID
-    currentDocData.genUser = 'Firebase App'
-    currentDocData.genTime = new Date()
-    currentDocData.text = event.target.textContent
+    await saveChangeCall({ "videoID": videoID, 
+                            "langSource": langSource,
+                            "originDocID": docID,
+                            "newText": event.target.textContent})
 
-
-    const newDocRef = collection(db, 'messageVideos', videoID, langSource)
-    const newDocID = await addDoc(newDocRef,currentDocData)
-
-    await setDoc(docRef, { currentEdit: false }, {merge: true})
-
-    return {"docID":newDocID.id,"positionScale":positionScale}
+    return {"positionScale":positionScale}
 
 }
 
