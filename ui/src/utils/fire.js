@@ -36,7 +36,7 @@ export class transcriptClass {
   }
 
   async init () {
-    this.refreshTranscript()
+    await this.refreshTranscript()
 
     // console.log(this.englishTranscript)
     // console.log(this.spanishTranscript)
@@ -116,13 +116,13 @@ export async function saveChange(event,videoID) {
       console.log("New edit not saving")
       alert("Newer edit detected and loaded. Please re edit")
       event.target.textContent = thisDocData.text
-      return {"docID":querySnapshot.docs[0].id,"positionScale":0}
+      return {"docID":querySnapshot.docs[0].id,"positionScale":0,'refresh':true}
     }
 
 
     if (currentDocData.text === event.target.textContent) {
       console.log("No Changes")
-      return {"docID":docID,"positionScale":0}
+      return {"docID":docID,"positionScale":0,'refresh':false}
     }
 
     const currentTextArray = currentDocData.text.split(" ")
@@ -141,7 +141,7 @@ export async function saveChange(event,videoID) {
                             "originDocID": docID,
                             "newText": event.target.textContent})
 
-    return {"positionScale":positionScale}
+    return {"positionScale":positionScale,'refresh':true}
 
 }
 

@@ -179,7 +179,10 @@ async function handleEditComplete(event) {
         player.play();
     }
 
-    tsClass.refreshTranscript()
+    if(newDocID.refresh) {
+        tsClass.refreshTranscript()
+        console.log("transcript refreshed")
+    }
 
 	// Perform necessary actions like saving changes
 	// ...

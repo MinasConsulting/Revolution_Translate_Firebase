@@ -429,7 +429,7 @@ def _saveNoSplit(data,originTextDict):
     updateDict['currentEdit'] = True
     updateDict['genUser'] = 'Firebase App'
     updateDict['genTime'] = datetime.now()
-    updateDict['text'] = data['text']
+    updateDict['text'] = data['newText']
 
     newDocRef = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document()
     newDocRef.set(updateDict)
