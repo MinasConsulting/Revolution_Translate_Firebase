@@ -489,7 +489,7 @@ def _textToSentences(originText,newText):
             current_sentence = ""
 
     # Add the last sentence if it exists (no trailing punctuation)
-    if current_sentence and current_sentence.strip() != "":
+    if current_sentence and current_sentence.strip() != "" and current_sentence not in ['"',"'"]:
         newTextSentences.append(current_sentence)
 
     return newTextSentences

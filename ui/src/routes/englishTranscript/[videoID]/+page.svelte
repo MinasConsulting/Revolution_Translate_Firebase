@@ -24,6 +24,9 @@
 
     onMount(async () => {
 
+        englishTranscript.set([])
+        spanishTranscript.set([])
+
         const loadingSpinner = document.querySelector('.loading-spinner');
         loadingSpinner.style.display = 'flex';
 
@@ -80,8 +83,8 @@
 
   function resetShading() {
     const transcriptBox = document.querySelector('.transcript-box');
-    for (var i = 0; i < transcript.length; i++) {
-        const transcriptLineElement = transcriptBox.querySelector(`li[data-start-sec="${transcript[i].startSec}"]`); 
+    for (var i = 0; i < $englishTranscript.length; i++) {
+        const transcriptLineElement = transcriptBox.querySelector(`li[data-start-sec="${$englishTranscript[i].startSec}"]`); 
         transcriptLineElement.style.backgroundColor = "transparent"
 	}
 
