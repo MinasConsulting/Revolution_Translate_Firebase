@@ -136,12 +136,27 @@ export async function saveChange(event,videoID) {
       }
     }
 
-    await saveChangeCall({ "videoID": videoID, 
+
+    try {
+        await saveChangeCall({ "videoID": videoID, 
                             "langSource": langSource,
                             "originDocID": docID,
                             "newText": event.target.textContent})
+                            
+      return { positionScale: positionScale, refresh: true };
 
-    return {"positionScale":positionScale,'refresh':true}
+    } catch (error) {
+
+        event.target.textContent = currentDocData.text
+        console.error("Error saving change:", error);
+
+        // Handle the error appropriately, e.g.,
+        alert("Failed to save changes. Please try again.");
+
+        // You might also log the error to a remote server or display a user-friendly message.
+
+        return { positionScale: 0, refresh: true }; // Or any other appropriate response
+    }
 
 }
 

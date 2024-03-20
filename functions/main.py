@@ -364,6 +364,8 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
 
     newTextSentences = _textToSentences(originTextDict['text'],data['newText'])
 
+    print(newTextSentences)
+
     if len(newTextSentences) == 1 or data['langSource'] == 'spanishTranscript':
         _saveNoSplit(data,originTextDict)
         return https_fn.Response(json.dumps({"data":"None"}), status=200)
@@ -375,6 +377,8 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
 
     # Get documents matching the query
     origin_words = query.get()
+
+    batch = db.batch()
 
     for sentence in newTextSentences:
         
@@ -409,7 +413,7 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
         newSplitDoc['endTime'] = _seconds_to_formatted_time(newEnd)
 
         new_doc_ref = db.collection("messageVideos").document(data['videoID']).collection("englishTranscript").document()
-        new_doc_ref.set(newSplitDoc)
+        batch.set(new_doc_ref,newSplitDoc)
 
         currentStartSec = newEnd
         query = words_ref.where(filter=firestore.FieldFilter("wordStartSec",">=",currentStartSec)).where(filter=firestore.FieldFilter("wordStartSec","<",originTextDict['endSec'])).order_by('wordStartSec')
@@ -417,6 +421,7 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
         # Get documents matching the query
         origin_words = query.get()
 
+    batch.commit()
     oldDocRef = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document(originTextDict['parentDoc'])
     oldDocRef.set({"currentEdit": False},merge=True)
 
