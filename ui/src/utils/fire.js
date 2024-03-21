@@ -147,13 +147,15 @@ export async function saveChange(event,videoID) {
 
     } catch (error) {
 
-        event.target.textContent = currentDocData.text
+        if(langSource === "englishTranscript") {
+          englishTranscript.update(transcript => transcript.filter(line => line.docID !== docID));
+        }
+        else if (langSource === "spanishTranscript") {
+          spanishTranscript.update(transcript => transcript.filter(line => line.docID !== docID));
+        }
+
         console.error("Error saving change:", error);
-
-        // Handle the error appropriately, e.g.,
         alert("Failed to save changes. Please try again.");
-
-        // You might also log the error to a remote server or display a user-friendly message.
 
         return { positionScale: 0, refresh: true }; // Or any other appropriate response
     }
