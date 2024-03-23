@@ -387,7 +387,12 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
         for seg in originalTextSegments:
             fuzzList.append(fuzz.ratio(sentence,seg))
 
-        maxIndex = fuzzList.index(max(fuzzList))
+        try:
+            maxIndex = fuzzList.index(max(fuzzList))
+        except ValueError:
+            _saveNoSplit(data,originTextDict)
+            print("Split Failed.")
+            return https_fn.Response(json.dumps({"data":"None"}), status=200)
         print("********")
         print("N:"+sentence)
 
