@@ -18,6 +18,7 @@
     let rewindSec = 10;
     let fontSize = 16;
     let centerFactor = 5;
+    let globalLock = false;
 
     const yellowColor = "#fcf756"
     const blueColor = "darkturquoise"
@@ -154,7 +155,9 @@
   }
 
   function handleDoubleClick(event) {
-    if(translateLock && event.target.dataset.language === "englishTranscript") {return}
+    if((translateLock && event.target.dataset.language === "englishTranscript") || globalLock) {return}
+
+    globalLock = true;
 
 	player.pause();
 	// Set the span to editable on double click
@@ -185,6 +188,9 @@ async function handleEditComplete(event) {
     if(newDocID.refresh) {
         tsClass.refreshTranscript()
         console.log("transcript refreshed")
+        if (event.target.dataset.isPlaceholder === 'true') {
+            event.target.textContent = event.target.textContent
+    }
     }
 
 	// Perform necessary actions like saving changes
@@ -194,6 +200,8 @@ async function handleEditComplete(event) {
 	event.target.contentEditable = "false";
 	// Remove blur listener after handling the edit
 	event.target.removeEventListener('blur', handleEditComplete);
+
+    globalLock = false;
 	}
 
     function handleVisChange(event) {
@@ -276,12 +284,12 @@ async function handleEditComplete(event) {
                         <div class="startTime-box">{line.startTime}</div> 
                         <div class="text-container">
                             {#if englishVis}
-                                <div style="font-size: {fontSize}px" class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript"> 
+                                <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript" data-is-placeholder={!line.text}> 
                                     {line.text}
                                 </div>
                             {/if}
                             {#if spanishVis && $spanishTranscript.length > 0}
-                                <div style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript"> 
+                                <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript" data-is-placeholder={!$spanishTranscript[index].text}> 
                                     {$spanishTranscript[index].text}
                                 </div>
                             {/if}
@@ -361,6 +369,12 @@ async function handleEditComplete(event) {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+[data-placeholder]:empty:before {
+     content: attr(data-placeholder);
+     color: #888;
+     font-style: italic;
 }
 </style>
 

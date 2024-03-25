@@ -59,6 +59,18 @@ export class transcriptClass {
       this.spanishTranscript = transResult.data.spanishTranscript
       spanishTranscript.set(this.spanishTranscript)
     }
+
+    // console.log("English Length",this.englishTranscript.length)
+    // console.log("Spanish Length",this.spanishTranscript.length)
+
+    // for (let i = 0; i < this.englishTranscript.length; i++){
+    //   if (this.englishTranscript[i].docID !== this.spanishTranscript[i].parentEnglish) {
+    //     console.log("Out of sync")
+    //     console.log(this.englishTranscript[i])
+    //     console.log(this.spanishTranscript[i])
+    //     break
+    //   }
+    // }
   }
 
   async spanishTranslate() {
@@ -135,7 +147,6 @@ export async function saveChange(event,videoID) {
         break
       }
     }
-
 
     try {
         await saveChangeCall({ "videoID": videoID, 
