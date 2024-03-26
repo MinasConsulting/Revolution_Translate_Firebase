@@ -288,7 +288,7 @@ async function handleEditComplete(event) {
                                     {line.text}
                                 </div>
                             {/if}
-                            {#if spanishVis && $spanishTranscript.length > 0}
+                            {#if spanishVis && $spanishTranscript.length > 0 && $spanishTranscript.length === $englishTranscript.length}
                                 <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript" data-is-placeholder={!$spanishTranscript[index].text}> 
                                     {$spanishTranscript[index].text}
                                 </div>

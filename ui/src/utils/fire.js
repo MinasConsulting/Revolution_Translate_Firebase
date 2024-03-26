@@ -153,7 +153,7 @@ export async function saveChange(event,videoID) {
                             "langSource": langSource,
                             "originDocID": docID,
                             "newText": event.target.textContent})
-                            
+     
       return { positionScale: positionScale, refresh: true };
 
     } catch (error) {
