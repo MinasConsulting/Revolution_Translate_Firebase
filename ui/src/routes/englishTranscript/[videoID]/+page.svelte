@@ -176,6 +176,8 @@ async function handleEditComplete(event) {
     const startSec = parseFloat(event.target.dataset.startSec) 
     const endSec = parseFloat(event.target.dataset.endSec)
 
+    event.target.contentEditable = "false"
+
     player.currentTime(startSec)
 	player.play();
 
@@ -199,8 +201,6 @@ async function handleEditComplete(event) {
 	// Perform necessary actions like saving changes
 	// ...
 
-	// Reset contentEditable to false after editing
-	event.target.contentEditable = "false";
 	// Remove blur listener after handling the edit
 	event.target.removeEventListener('blur', handleEditComplete);
 
