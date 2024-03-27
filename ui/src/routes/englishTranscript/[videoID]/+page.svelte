@@ -19,6 +19,7 @@
     let fontSize = 16;
     let centerFactor = 5;
     let globalLock = false;
+    let isEditing = false;
 
     const yellowColor = "#fcf756"
     const blueColor = "darkturquoise"
@@ -191,19 +192,18 @@ async function handleEditComplete(event) {
     }
 
     if(newDocID.refresh) {
+        isEditing = true;
         await tsClass.refreshTranscript()
         console.log("transcript refreshed")
-        if (event.target.dataset.isPlaceholder === 'true') {
-            event.target.textContent = event.target.textContent
     }
-    }
-
+    event.target.textContent = event.target.textContent
 	// Perform necessary actions like saving changes
 	// ...
     await tick();
 	// Remove blur listener after handling the edit
 	event.target.removeEventListener('blur', handleEditComplete);
     globalLock = false;
+    isEditing = false;
 	}
 
     function handleVisChange(event) {
@@ -277,7 +277,12 @@ async function handleEditComplete(event) {
       
 </div>
 
-<div class="transcript-box">
+<div class="transcript-box" >
+    {#if isEditing}
+    <div class="loading-spinner ">
+        <div class="spinner"></div>
+    </div>
+    {/if}
     {#if $englishTranscript.length > 0}
         <ul>
             {#each $englishTranscript as line, index}
@@ -317,6 +322,7 @@ async function handleEditComplete(event) {
         overflow-y: scroll;
         border: 1px solid #ccc;
         float: right;
+        position: relative;
     }
     .video-container {
         float: left;
@@ -348,16 +354,17 @@ async function handleEditComplete(event) {
     cursor: not-allowed; /* Optionally change cursor */
   }
   .loading-spinner {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
-  z-index: 999; /* Ensure the spinner is on top of other elements */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 10000000px;
+    overflow: visible;
+    background-color: rgba(255, 255, 255, 0.7); /* Semi-transparent overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Ensure the spinner is on top of other elements */
 }
 .spinner {
   border: 5px solid rgba(0, 0, 0, 0.2);
