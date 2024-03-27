@@ -44,6 +44,9 @@
 
             if ($spanishTranscript.length>0) {
                 translateLock = true;
+                if ($englishTranscript.length !== $spanishTranscript.length){
+                    alert("Transcript sync error. Editing disabled. Please reach out to Evan Stoelzel.")
+                }
             }
             videoLink = tsClass.videoURL;
 

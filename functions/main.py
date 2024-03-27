@@ -293,6 +293,8 @@ def getTranscript(req: https_fn.Request) -> https_fn.Response:
     
     returnData = _getTranscript(videoID)
 
+    
+
     returnResponse = json.dumps({"data":returnData})
     # Return a response
     return https_fn.Response(returnResponse, status=200)
