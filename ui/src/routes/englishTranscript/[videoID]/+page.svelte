@@ -1,7 +1,7 @@
 <script>
 	import { page } from '$app/stores';
 	import { saveChange, transcriptClass } from "../../../utils/fire.js"
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import videojs from 'video.js';
 	import 'video.js/dist/video-js.css'; // Import Video.js CSS
     import { englishTranscript, spanishTranscript } from '../../../utils/stores.js';
@@ -191,7 +191,7 @@ async function handleEditComplete(event) {
     }
 
     if(newDocID.refresh) {
-        tsClass.refreshTranscript()
+        await tsClass.refreshTranscript()
         console.log("transcript refreshed")
         if (event.target.dataset.isPlaceholder === 'true') {
             event.target.textContent = event.target.textContent
@@ -200,10 +200,9 @@ async function handleEditComplete(event) {
 
 	// Perform necessary actions like saving changes
 	// ...
-
+    await tick();
 	// Remove blur listener after handling the edit
 	event.target.removeEventListener('blur', handleEditComplete);
-
     globalLock = false;
 	}
 
