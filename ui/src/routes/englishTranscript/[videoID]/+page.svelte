@@ -236,6 +236,42 @@ async function handleEditComplete(event) {
     function rewindClick () {
         player.currentTime(player.currentTime() - rewindSec);
     }
+
+    function exportClick () {
+        const videoSplit = videoName.split(".")[0]
+
+        let exportText = "Start Time, Text\n"
+
+        $englishTranscript.forEach((line) => {
+            exportText += `"${line.startTime}","${line.text}"\n`
+        })
+
+            // Create a blob object with the text content
+        const blob = new Blob([exportText], { type: "text/plain" });
+
+        // Create a download link with the filename "transcript.txt"
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${videoSplit}_English_Transcript.csv`;
+        link.click();
+
+        if ($spanishTranscript.length === $englishTranscript.length) {
+            let exportText = "Start Time, Text\n"
+
+            $spanishTranscript.forEach((line) => {
+                exportText += `"${line.startTime}","${line.text}"\n`
+            })
+
+            // Create a blob object with the text content
+            const blob = new Blob([exportText], { type: "text/plain" });
+
+            // Create a download link with the filename "transcript.txt"
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `${videoSplit}_Spanish_Transcript.csv`;
+            link.click();
+        }
+    }
 </script>
 
 <h1>Transcript for {videoName}</h1>
@@ -245,6 +281,7 @@ async function handleEditComplete(event) {
 
 <menu>
 	<button on:click={handleTranslateClick} class:disabled={translateLock}>Translate</button>
+    <button on:click={exportClick} class:disabled={globalLock}>Export</button>
     <button style="float:right" on:click={e => fontSize++}>Increase font size</button>
     <button style="float:right; margin-right:5px" on:click={e => fontSize--}>Decrease font size</button>
     <button style="float:right; margin-right:5px;" on:click={resetShading}>Reset Shading</button>
