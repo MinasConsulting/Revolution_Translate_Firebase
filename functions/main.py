@@ -373,7 +373,7 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
 
     print(newTextSentences)
 
-    if len(newTextSentences) == 1 or data['langSource'] == 'spanishTranscript':
+    if len(newTextSentences) == 1 or data['langSource'] == 'spanishTranscript' or data['newText'] == '':
         _saveNoSplit(data,originTextDict)
         return https_fn.Response(json.dumps({"data":"None"}), status=200)
     
