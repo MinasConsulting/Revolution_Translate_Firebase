@@ -227,6 +227,9 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     splitTranslate = translationResult.text.split('<b> </b>')
     del splitTranslate[-1]
 
+    print(f"Split Translate Len: {len(splitTranslate)}")
+    print(f"English Data Len: {len(englishData)}")
+
     batch = db.batch()
 
     dataDict = {'SRTID':0,
@@ -240,6 +243,8 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     dataReturn = []
     
     for i,line in enumerate(englishData):
+
+        # print(f"{i}: {line['text']} \n{splitTranslate[i]}\n\n")
 
         dataDict['SRTID'] = line['SRTID']
         dataDict['startTime'] = line['startTime']
