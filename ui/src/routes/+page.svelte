@@ -76,10 +76,10 @@
                 Edit
             </a>
           </div>
-        <p style="width: 20%;"><u>Generated Time:</u> {value.publishTime.toDate().toLocaleDateString()} {value.publishTime.toDate().toLocaleTimeString()}</p>
-        <p style="width: 20%;"><u>Last English Edit:</u> {value.englishMessageData.genTime.toDate().toLocaleDateString()} {value.englishMessageData.genTime.toDate().toLocaleTimeString()}</p>
+        <p style="width: 20%;"><u>Generated Time:</u> {value.publishTime.toDate().toLocaleDateString("default", {year: "numeric"})}/{value.publishTime.toDate().toLocaleDateString("default", {month: "2-digit"})}/{value.publishTime.toDate().toLocaleDateString("default", {day: "2-digit"})} {value.publishTime.toDate().toLocaleTimeString()}</p>
+        <p style="width: 20%;"><u>Last English Edit:</u> {value.englishMessageData.genTime.toDate().toLocaleDateString("default", {year: "numeric"})}/{value.englishMessageData.genTime.toDate().toLocaleDateString("default", {month: "2-digit"})}/{value.englishMessageData.genTime.toDate().toLocaleDateString("default", {day: "2-digit"})} {value.englishMessageData.genTime.toDate().toLocaleTimeString()}</p>
         {#if value.spanishMessageData}
-            <p style="width: 20%;"><u>Last Spanish Edit:</u> {value.spanishMessageData.genTime.toDate().toLocaleDateString()} {value.spanishMessageData.genTime.toDate().toLocaleTimeString()}</p>
+            <p style="width: 20%;"><u>Last Spanish Edit:</u> {value.spanishMessageData.genTime.toDate().toLocaleDateString("default", {year: "numeric"})}/{value.spanishMessageData.genTime.toDate().toLocaleDateString("default", {month: "2-digit"})}/{value.spanishMessageData.genTime.toDate().toLocaleDateString("default", {day: "2-digit"})} {value.spanishMessageData.genTime.toDate().toLocaleTimeString()}</p>
         {:else}
             <p style="width: 20%;"><u>Last Spanish Edit:</u> NA</p>
         {/if}
