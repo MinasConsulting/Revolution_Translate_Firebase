@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import {getStorage, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage"
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy, query, where } from "firebase/firestore"
+import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy, query, where, limit } from "firebase/firestore"
 import { englishTranscript, spanishTranscript } from './stores.js';
 // import { Translator } from 'deepl-node';
 // TODO: Add SDKs for Firebase products that you want to use
@@ -82,34 +82,49 @@ export class transcriptClass {
 }
 
 export async function getVideos() {
-    const videoInfo = new Map();
-    const fireVideo = await getDocs(collection(db, "messageVideos"));
-  
-    // Create a Promise to handle asynchronous operations
-    const promise = new Promise((resolve) => {
-      fireVideo.forEach((doc) => {
-        console.log(`${doc.id} => ${doc.data()}`);
+  const videoInfo = new Map();
+  const fireVideo = await getDocs(collection(db, "messageVideos"));
 
-        const thisData = doc.data()
+  // Process each video asynchronously using Promise.all
+  await Promise.all(
+    fireVideo.docs.map(async (doc) => {
 
-        thisData.jsTS = thisData.publishTime
+      const thisData = doc.data();
 
-        videoInfo.set(doc.id, thisData);
-        // Resolve the promise after all iterations are done
-        if (fireVideo.size === videoInfo.size) { // Check if all documents are processed
-              // Convert map entries to an array and sort
-              const sortedEntries = [...videoInfo.entries()].sort((a, b) => b[1].jsTS - a[1].jsTS);
+      const thisMessageRef = collection(db, "messageVideos", doc.id, 'englishTranscript');
+      const messageQuery = query(thisMessageRef, orderBy("genTime", "desc"), limit(1));
 
-            // Create a new map from the sorted entries
-            const sortedVideoInfo = new Map(sortedEntries);
-            resolve(sortedVideoInfo);
-        }
-      });
-    });
-  
-    // Wait for the promise to resolve and return the videoInfo map
-    return await promise;
-  }
+      // Await the getDocs call for the message transcript
+      const messageSnapshot = await getDocs(messageQuery);
+      if (messageSnapshot.docs.length>0) {
+        const messageData = messageSnapshot.docs[0].data();
+        thisData.englishMessageData = messageData;
+      } // Access data of the first document
+
+      const spanishthisMessageRef = collection(db, "messageVideos", doc.id, 'spanishTranscript');
+      const spanishmessageQuery = query(spanishthisMessageRef, orderBy("genTime", "desc"), limit(1));
+
+      // Await the getDocs call for the message transcript
+      const spanishmessageSnapshot = await getDocs(spanishmessageQuery);
+      if (spanishmessageSnapshot.docs.length>0) {
+        const spanishmessageData = spanishmessageSnapshot.docs[0].data(); // Access data of the first document
+        thisData.spanishMessageData = spanishmessageData;
+      }
+
+
+      thisData.jsTS = thisData.publishTime;
+
+      videoInfo.set(doc.id, thisData);
+      // console.log(`${doc.id}`, thisData);
+    })
+  );
+
+  // Sort the videoInfo map after all async operations are complete
+  const sortedEntries = [...videoInfo.entries()].sort((a, b) => b[1].jsTS - a[1].jsTS);
+  const sortedVideoInfo = new Map(sortedEntries);
+
+  return sortedVideoInfo;
+}
 
 export async function saveChange(event,videoID) {
 
