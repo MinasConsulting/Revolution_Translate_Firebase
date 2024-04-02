@@ -19,6 +19,7 @@ from google.cloud.video.transcoder_v1.services.transcoder_service import (
     TranscoderServiceClient,
 )
 from rapidfuzz import fuzz
+from html import unescape
 
 app = initialize_app()
 db = firestore.client()
@@ -223,8 +224,8 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     for item in englishData:
         deepLEnglish += item['text']+'<b> </b>'
     translationResult = deeplTrans.translate_text(deepLEnglish,source_lang='EN',target_lang='ES',split_sentences='nonewlines',tag_handling='html',formality='less')
-
-    splitTranslate = translationResult.text.split('<b> </b>')
+    translationResult = unescape(translationResult.text)
+    splitTranslate = translationResult.split('<b> </b>')
     del splitTranslate[-1]
 
     print(f"Split Translate Len: {len(splitTranslate)}")
