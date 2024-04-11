@@ -54,7 +54,7 @@
             // Initialize Video.js player after fetching the video URL
             player = videojs(document.getElementById('my-video'), {
                 controls: true,
-                fluid: true,
+                fluid: false,
                 preload: 'auto',
                 sources: [{
                     src: videoLink,
@@ -304,7 +304,7 @@ async function handleEditComplete(event) {
 
 
 <div class="video-container">
-	<video id="my-video" class="video-js" controls preload="auto" style="width:100%"></video>
+	<video id="my-video" class="video-js" controls preload="auto" style="width:100%; height:75vh;"></video>
     <button style= "float:right" on:click={rewindClick}>Rewind</button>
     <select style="float:right; margin-right: 5px" bind:value={rewindSec}>
         {#each [2,5,7,10,12,15] as i}
@@ -355,7 +355,7 @@ async function handleEditComplete(event) {
     }
     .transcript-box {
         width: 60%;
-        height: 700px;
+        height: 75vh;
         overflow-y: scroll;
         border: 1px solid #ccc;
         float: right;
@@ -364,6 +364,7 @@ async function handleEditComplete(event) {
     .video-container {
         float: left;
         width: 35%;
+        max-height: 75vh;
     }
     .time-and-text {
         display: flex;
@@ -411,6 +412,7 @@ async function handleEditComplete(event) {
   height: 50px;
   animation: spin 1s linear infinite;
 }
+
 
 @keyframes spin {
   from { transform: rotate(0deg); }
