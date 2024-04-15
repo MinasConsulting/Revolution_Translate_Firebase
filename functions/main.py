@@ -74,6 +74,44 @@ def transcriptKickOff(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
     job.input_uri = file_uri
     job.output_uri = f"gs://{bucket_name}/transcoded/{file}/"
 
+    # Define the job configuration for SD output
+    config = transcoder_v1.types.JobConfig()
+
+    # Define video stream for SD
+    video_stream = transcoder_v1.types.VideoStream()
+    video_stream.h264 = transcoder_v1.types.VideoStream.H264CodecSettings()  # Using H.264 codec
+    video_stream.h264.bitrate_bps = 1500000  # 1.5 Mbps for better SD quality
+    video_stream.h264.frame_rate = 30  # Assume 30 fps; adjust as per source if needed
+
+    # Create an elementary stream for the video
+    video_elementary_stream = transcoder_v1.types.ElementaryStream()
+    video_elementary_stream.video_stream = video_stream
+    video_elementary_stream.key = "sd"
+    config.elementary_streams.append(video_elementary_stream)
+
+    # Define audio stream (assuming AAC audio codec)
+    audio_stream = transcoder_v1.AudioStream()
+    audio_stream.codec = "aac"
+    audio_stream.bitrate_bps = 128000  # 128 kbps is a common bitrate for SD
+
+    # Create an elementary stream for the audio
+    audio_elementary_stream = transcoder_v1.ElementaryStream()
+    audio_elementary_stream.audio_stream = audio_stream
+    audio_elementary_stream.key = "audio-stream"
+    config.elementary_streams.append(audio_elementary_stream)
+
+    # Define the MP4 container
+    mux_stream = transcoder_v1.types.MuxStream()
+    mux_stream.key = "sd"
+    mux_stream.container = "mp4"
+    mux_stream.elementary_streams = ["sd", "audio-stream"]
+
+    # Add the mux stream to the job configuration
+    config.mux_streams.append(mux_stream)
+
+    # Assign the configuration to the job
+    job.config = config
+
     response = transcode_client.create_job(parent=parent, job=job)
     print(f"Transcode job started: {response.name}")
 
