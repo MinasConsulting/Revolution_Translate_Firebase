@@ -222,11 +222,14 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
 
     deepLEnglish = ""
     for item in englishData:
-        deepLEnglish += item['text']+'<b> </b>'
+        deepLEnglish += '<p>'+item['text']+'</p>'
     translationResult = deeplTrans.translate_text(deepLEnglish,source_lang='EN',target_lang='ES',split_sentences='nonewlines',tag_handling='html',formality='less')
+    # print(translationResult)
     translationResult = unescape(translationResult.text)
-    splitTranslate = translationResult.split('<b> </b>')
-    del splitTranslate[-1]
+    splitTranslate = translationResult.split('</p><p>')
+    splitTranslate[0] = splitTranslate[0].replace('<p>','')
+    splitTranslate[-1] = splitTranslate[-1].replace('</p>','')
+    
 
     print(f"Split Translate Len: {len(splitTranslate)}")
     print(f"English Data Len: {len(englishData)}")
