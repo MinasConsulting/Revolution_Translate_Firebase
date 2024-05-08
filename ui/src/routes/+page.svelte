@@ -76,6 +76,7 @@
                 Edit
             </a>
           </div>
+          <p style="width: 10%;"><u>Length:</u> {value.vidLength.endTime.slice(0,-4)}</p>
         <p style="width: 20%;"><u>Generated Time:</u> {value.publishTime.toDate().toLocaleDateString("default", {year: "numeric"})}/{value.publishTime.toDate().toLocaleDateString("default", {month: "2-digit"})}/{value.publishTime.toDate().toLocaleDateString("default", {day: "2-digit"})} {value.publishTime.toDate().toLocaleTimeString()}</p>
         <p style="width: 20%;"><u>Last English Edit:</u> {value.englishMessageData.genTime.toDate().toLocaleDateString("default", {year: "numeric"})}/{value.englishMessageData.genTime.toDate().toLocaleDateString("default", {month: "2-digit"})}/{value.englishMessageData.genTime.toDate().toLocaleDateString("default", {day: "2-digit"})} {value.englishMessageData.genTime.toDate().toLocaleTimeString()}</p>
         {#if value.spanishMessageData}

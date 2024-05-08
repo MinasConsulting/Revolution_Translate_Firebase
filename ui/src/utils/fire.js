@@ -60,6 +60,7 @@ export class transcriptClass {
       spanishTranscript.set(this.spanishTranscript)
     }
 
+    // Detect sync Issues
     // console.log("English Length",this.englishTranscript.length)
     // console.log("Spanish Length",this.spanishTranscript.length)
 
@@ -71,7 +72,22 @@ export class transcriptClass {
     //     break
     //   }
     // }
-  }
+
+    // Find last edited line
+    // let genTime = this.englishTranscript[0].genTime
+    // let maxIndex = 0
+    // for (let i = 0; i < this.englishTranscript.length; i++){
+    //   if (this.englishTranscript[i].genTime > genTime){
+    //     maxIndex = i
+    //     genTime = this.englishTranscript[i].genTime
+    //   }
+
+    //   }
+    //   console.log(this.englishTranscript[maxIndex])
+
+    
+    }
+  
 
   async spanishTranslate() {
     const result = await deepLTranslate({ videoID: this.videoID })
@@ -109,6 +125,16 @@ export async function getVideos() {
       if (spanishmessageSnapshot.docs.length>0) {
         const spanishmessageData = spanishmessageSnapshot.docs[0].data(); // Access data of the first document
         thisData.spanishMessageData = spanishmessageData;
+      }
+
+      const messageLenRef = collection(db, "messageVideos", doc.id, 'englishTranscript');
+      const messageLenRefQuery = query(messageLenRef, orderBy("endSec", "desc"), limit(1));
+
+      // Await the getDocs call for the message transcript
+      const messageLenRefSnapshot = await getDocs(messageLenRefQuery);
+      if (messageLenRefSnapshot.docs.length>0) {
+        const messageLenData = messageLenRefSnapshot.docs[0].data(); // Access data of the first document
+        thisData.vidLength = messageLenData;
       }
 
 
