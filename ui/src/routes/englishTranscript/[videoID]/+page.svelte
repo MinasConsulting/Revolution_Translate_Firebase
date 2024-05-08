@@ -21,6 +21,9 @@
     let globalLock = false;
     let isEditing = false;
 
+    let downloadButtonText = 'Download Video'
+    let downloadButtonDisabled = false;
+
     const yellowColor = "#fcf756"
     const blueColor = "darkturquoise"
 
@@ -278,6 +281,16 @@ async function handleEditComplete(event) {
         }
     }
 
+    async function handleDownload(videoName) {
+        downloadButtonText = 'Download in progress...';
+        downloadButtonDisabled = true;
+        
+        await tsClass.downloadVideo(videoName);
+
+        downloadButtonText = 'Download Video';
+        downloadButtonDisabled = false;
+    }
+
 
 </script>
 
@@ -289,7 +302,7 @@ async function handleEditComplete(event) {
 <menu>
 	<button on:click={handleTranslateClick} class:disabled={translateLock}>Translate</button>
     <button on:click={exportScriptClick} class:disabled={globalLock}>Export Script</button>
-    <button on:click={tsClass.downloadVideo(videoName)} class:disabled={globalLock}>Download Video</button>
+    <button on:click={() => handleDownload(videoName)} class:disabled={globalLock||downloadButtonDisabled}>{downloadButtonText}</button>
     <button style="float:right" on:click={e => fontSize++}>Increase font size</button>
     <button style="float:right; margin-right:5px" on:click={e => fontSize--}>Decrease font size</button>
     <button style="float:right; margin-right:5px;" on:click={resetShading}>Reset Shading</button>

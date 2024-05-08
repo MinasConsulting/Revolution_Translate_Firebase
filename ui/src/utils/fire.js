@@ -66,8 +66,10 @@ export class transcriptClass {
       document.body.removeChild(link);
       URL.revokeObjectURL(link.href);
       console.log("File downloaded successfully");
+      return true;
     } catch (error) {
       console.error("Error downloading file:", error);
+      return false;
     }
   }
   
