@@ -1,0 +1,10 @@
+[
+    {
+      "origin": [
+        "http://localhost:5173", 
+        "https://revolutiontranslate.web.app",
+        "revolutiontranslate.web.app$"
+    ],
+      "method": ["GET"]
+    }
+  ]

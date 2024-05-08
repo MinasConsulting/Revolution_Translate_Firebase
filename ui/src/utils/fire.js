@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import {getStorage, getDownloadURL, ref, uploadBytesResumable } from "firebase/storage"
+import {getStorage, getDownloadURL, ref, uploadBytesResumable, getBlob } from "firebase/storage"
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy, query, where, limit } from "firebase/firestore"
 import { englishTranscript, spanishTranscript } from './stores.js';
@@ -44,9 +44,33 @@ export class transcriptClass {
     const videoDoc = await getDoc(docRef)
     const videoData = videoDoc.data()
 
+
     this.videoURL = await getDownloadURL(ref(storage, videoData.videoLink))
 
   }
+
+  async downloadVideo(videoName) {
+    console.log(`videos/${videoName}`)
+    const storageRef = ref(storage, `videos/${videoName}`)
+  
+    try {
+      // Get the blob from the Firebase storage reference
+      const blob = await getBlob(storageRef);
+  
+      // Create a link element, use it to download the Blob, and remove it
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = videoName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      console.log("File downloaded successfully");
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
+  }
+  
 
   async refreshTranscript () {
     const transResult = await getTranscriptFunc({ videoID: this.videoID })

@@ -10,6 +10,7 @@ service firebase.storage {
     }
     match /videos/{allFiles=**} {
       allow write;
+      allow read;
     }
   }
 }

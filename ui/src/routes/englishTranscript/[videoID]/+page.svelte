@@ -51,6 +51,7 @@
             }
             videoLink = tsClass.videoURL;
 
+
             // Initialize Video.js player after fetching the video URL
             player = videojs(document.getElementById('my-video'), {
                 controls: true,
@@ -241,7 +242,7 @@ async function handleEditComplete(event) {
         player.currentTime(player.currentTime() - rewindSec);
     }
 
-    function exportClick () {
+    function exportScriptClick () {
         const videoSplit = videoName.split(".")[0]
 
         let exportText = "Start Time, Text\n"
@@ -276,6 +277,8 @@ async function handleEditComplete(event) {
             link.click();
         }
     }
+
+
 </script>
 
 <h1>Transcript for {videoName}</h1>
@@ -285,7 +288,8 @@ async function handleEditComplete(event) {
 
 <menu>
 	<button on:click={handleTranslateClick} class:disabled={translateLock}>Translate</button>
-    <button on:click={exportClick} class:disabled={globalLock}>Export</button>
+    <button on:click={exportScriptClick} class:disabled={globalLock}>Export Script</button>
+    <button on:click={tsClass.downloadVideo(videoName)} class:disabled={globalLock}>Download Video</button>
     <button style="float:right" on:click={e => fontSize++}>Increase font size</button>
     <button style="float:right; margin-right:5px" on:click={e => fontSize--}>Decrease font size</button>
     <button style="float:right; margin-right:5px;" on:click={resetShading}>Reset Shading</button>
