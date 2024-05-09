@@ -1,6 +1,6 @@
 <script>
 	import { page } from '$app/stores';
-	import { saveChange, transcriptClass } from "../../../utils/fire.js"
+	import { saveChange, saveRead, transcriptClass } from "../../../utils/fire.js"
 	import { onDestroy, onMount, tick } from 'svelte';
 	import videojs from 'video.js';
 	import 'video.js/dist/video-js.css'; // Import Video.js CSS
@@ -20,6 +20,7 @@
     let centerFactor = 5;
     let globalLock = false;
     let isEditing = false;
+    let saveReadinProgress = false;
 
     let downloadButtonText = 'Download Video'
     let downloadButtonDisabled = false;
@@ -109,10 +110,12 @@
 	let transcriptLine = null
 	let scrollLine = null
     let prevLine = null
+    let scriptIndex = null
 	
 	for (var i = 0; i < $englishTranscript.length; i++) {
 		if (currentPosition >= $englishTranscript[i].startSec && currentPosition < $englishTranscript[i].endSec){
             transcriptLine = $englishTranscript[i]
+            scriptIndex = i
             if (i > 0) {
                 prevLine = $englishTranscript[i-1]
             }
@@ -149,6 +152,15 @@
 				const scrollTop = transcriptBox.scrollTop; // Current scroll position
 				const targetTop = scrollLineElement.offsetTop; // Top position of the target element
 				const scrollDistance = Math.abs(targetTop - scrollTop); // Distance to scroll
+                
+                if (!transcriptLine.lineRead && !saveReadinProgress){
+                    saveReadinProgress = true
+                    saveRead(transcriptLine,videoID)
+                    $englishTranscript[scriptIndex].lineRead = true
+                    saveReadinProgress = false
+                }
+
+                // transcriptLine.dataset.lineread = true
 
 				if (scrollDistance > 500){
 					scrollLineElement.scrollIntoView({
@@ -349,12 +361,12 @@ async function handleEditComplete(event) {
                         <div class="startTime-box">{line.startTime}</div> 
                         <div class="text-container">
                             {#if englishVis}
-                                <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript" data-is-placeholder={!line.text}> 
+                                <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript" data-is-placeholder={!line.text} data-line-read={line.lineRead}> 
                                     {line.text}
                                 </div>
                             {/if}
                             {#if spanishVis && $spanishTranscript.length > 0 && $spanishTranscript.length === $englishTranscript.length}
-                                <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript" data-is-placeholder={!$spanishTranscript[index].text}> 
+                                <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript" data-is-placeholder={!$spanishTranscript[index].text} data-line-read={$spanishTranscript[index].lineRead}> 
                                     {$spanishTranscript[index].text}
                                 </div>
                             {/if}

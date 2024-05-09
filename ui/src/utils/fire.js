@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import {getStorage, getDownloadURL, ref, uploadBytesResumable, getBlob } from "firebase/storage"
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { getFirestore, collection, getDocs, getDoc,setDoc, addDoc, doc, orderBy, query, where, limit } from "firebase/firestore"
+import { getFirestore, collection, getDocs, getDoc, updateDoc, doc, orderBy, query, where, limit } from "firebase/firestore"
 import { englishTranscript, spanishTranscript } from './stores.js';
 // import { Translator } from 'deepl-node';
 // TODO: Add SDKs for Firebase products that you want to use
@@ -176,6 +176,13 @@ export async function getVideos() {
   const sortedVideoInfo = new Map(sortedEntries);
 
   return sortedVideoInfo;
+}
+
+export async function saveRead(transcriptLine,videoID) {
+    const docID = transcriptLine.docID
+    const langSource = "englishTranscript"
+    const docRef = doc(db, 'messageVideos', videoID, langSource, docID)
+    await updateDoc(docRef, {lineRead: true})
 }
 
 export async function saveChange(event,videoID) {
