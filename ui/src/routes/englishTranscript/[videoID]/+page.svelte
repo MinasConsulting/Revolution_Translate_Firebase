@@ -154,10 +154,16 @@
 				const scrollDistance = Math.abs(targetTop - scrollTop); // Distance to scroll
                 
                 if (!transcriptLine.lineRead && !saveReadinProgress){
-                    // if spanish transcript is present do a save on that document.
                     saveReadinProgress = true
-                    saveRead(transcriptLine,videoID)
+                    saveRead(transcriptLine,videoID,"englishTranscript")
                     $englishTranscript[scriptIndex].lineRead = true
+                    saveReadinProgress = false
+                }
+
+                if ($spanishTranscript.length === $englishTranscript.length && !$spanishTranscript[scriptIndex].lineRead && !saveReadinProgress){
+                    saveReadinProgress = true
+                    saveRead($spanishTranscript[scriptIndex],videoID,"spanishTranscript")
+                    $spanishTranscript[scriptIndex].lineRead = true
                     saveReadinProgress = false
                 }
 

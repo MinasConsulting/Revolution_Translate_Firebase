@@ -178,9 +178,8 @@ export async function getVideos() {
   return sortedVideoInfo;
 }
 
-export async function saveRead(transcriptLine,videoID) {
+export async function saveRead(transcriptLine,videoID,langSource) {
     const docID = transcriptLine.docID
-    const langSource = "englishTranscript"
     const docRef = doc(db, 'messageVideos', videoID, langSource, docID)
     await updateDoc(docRef, {lineRead: true})
 }
