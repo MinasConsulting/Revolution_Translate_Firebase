@@ -154,6 +154,7 @@
 				const scrollDistance = Math.abs(targetTop - scrollTop); // Distance to scroll
                 
                 if (!transcriptLine.lineRead && !saveReadinProgress){
+                    // if spanish transcript is present do a save on that document.
                     saveReadinProgress = true
                     saveRead(transcriptLine,videoID)
                     $englishTranscript[scriptIndex].lineRead = true
@@ -358,7 +359,7 @@ async function handleEditComplete(event) {
             {#each $englishTranscript as line, index}
                 <li data-start-sec={line.startSec} style="list-style: none"> 
                     <div class="time-and-text">
-                        <div class="startTime-box">{line.startTime}</div> 
+                        <div class="startTime-box" style="background-color: {line.lineRead ? yellowColor : 'transparent'};">{line.startTime}</div>  
                         <div class="text-container">
                             {#if englishVis}
                                 <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript" data-is-placeholder={!line.text} data-line-read={line.lineRead}> 
