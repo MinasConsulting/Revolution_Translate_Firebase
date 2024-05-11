@@ -365,15 +365,25 @@ async function handleEditComplete(event) {
             {#each $englishTranscript as line, index}
                 <li data-start-sec={line.startSec} style="list-style: none"> 
                     <div class="time-and-text">
-                        <div class="startTime-box" style="background-color: {line.lineRead ? yellowColor : 'transparent'};">{line.startTime}</div>  
+                        <div class="start-time-container"> 
+                            {#if englishVis}
+                                <div class="startTime-box" style="background-color: {line.lineRead ? yellowColor : 'transparent'};">{line.startTime}</div>
+                            {/if}
+                            {#if spanishVis && englishVis && $spanishTranscript.length > 0 && $spanishTranscript.length === $englishTranscript.length}
+                                <div class="startTime-box" style="background-color: {$spanishTranscript[index].lineRead ? yellowColor : 'transparent'};">            </div>
+                            {/if}
+                            {#if spanishVis && !englishVis && $spanishTranscript.length > 0 && $spanishTranscript.length === $englishTranscript.length}
+                                <div class="startTime-box" style="background-color: {$spanishTranscript[index].lineRead ? yellowColor : 'transparent'};">{line.startTime}</div>
+                            {/if}
+                        </div>
                         <div class="text-container">
                             {#if englishVis}
-                                <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript" data-is-placeholder={!line.text} data-line-read={line.lineRead}> 
+                                <div class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript" data-is-placeholder={!line.text} style="font-size: {fontSize}px"> 
                                     {line.text}
                                 </div>
                             {/if}
                             {#if spanishVis && $spanishTranscript.length > 0 && $spanishTranscript.length === $englishTranscript.length}
-                                <div data-placeholder="Insert text..." style="font-size: {fontSize}px" class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript" data-is-placeholder={!$spanishTranscript[index].text} data-line-read={$spanishTranscript[index].lineRead}> 
+                                <div class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript" data-is-placeholder={!$spanishTranscript[index].text} style="font-size: {fontSize}px"> 
                                     {$spanishTranscript[index].text}
                                 </div>
                             {/if}
@@ -386,13 +396,20 @@ async function handleEditComplete(event) {
 </div>
 
 <style>
-    .startTime-box {
-        box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
-        padding: 5px;
-        border-radius: 5px;
-        margin-right: 10px;
-        display: inline-block;
-    }
+.startTime-box {
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.15);
+    padding: 5px;
+    border-radius: 5px;
+    display: block; /* Ensure each box is a block element for vertical stacking */
+    margin-bottom: 5px; /* Space between each start time box */
+    border: 1px solid black; /* Add a solid black border */
+    min-height: 10px; /* Ensure all boxes are at least 40px tall */
+}
+.start-time-container {
+    display: flex;
+    flex-direction: column; /* Stack start time boxes vertically */
+    margin-right: 10px; /* Space between time boxes and text */
+}
     .transcript-box {
         width: 60%;
         height: 75vh;
