@@ -21,6 +21,7 @@ from google.cloud.video.transcoder_v1.services.transcoder_service import (
 from rapidfuzz import fuzz
 from html import unescape
 from openai import OpenAI
+import concurrent.futures
 
 app = initialize_app()
 db = firestore.client()
@@ -351,12 +352,28 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
     for index in range(len(englishData)):
         testList.append(_generateTrainingMessages(englishData,index,systemDescription))
     
-    splitTranslate = []
-    for item in testList:
+    # splitTranslate = []
+    # # need to paralellize for faster processing
+    # for item in testList:
+    #     response = gptClient.chat.completions.create(
+    #         model = gptModel,
+    #         messages = item['messages'])
+    #     splitTranslate.append(response.choices[0].message.content)
+    #     # print(response.choices[0].message.content)
+
+    def translate_item(index, item):
         response = gptClient.chat.completions.create(
-            model = gptModel,
-            messages = item['messages'])
-        splitTranslate.append(response.choices[0].message.content)
+            model=gptModel,
+            messages=item['messages']
+        )
+        return index, response.choices[0].message.content
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = {executor.submit(translate_item, i, item): i for i, item in enumerate(testList)}
+        splitTranslate = [None] * len(testList)
+        for future in concurrent.futures.as_completed(futures):
+            index, translation = future.result()
+            splitTranslate[index] = translation
     
 
     print(f"Spanish Translate Len: {len(splitTranslate)}")

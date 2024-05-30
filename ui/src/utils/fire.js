@@ -22,6 +22,7 @@ const storage = getStorage(app)
 
 const functions = getFunctions(app);
 const deepLTranslate = httpsCallable(functions, 'deepLTranslate');
+const gptTranslate = httpsCallable(functions, 'gptTranslate',{timeout: 300000});
 const getTranscriptFunc = httpsCallable(functions, 'getTranscript');
 const saveChangeCall = httpsCallable(functions, 'saveChange')
 
@@ -116,7 +117,8 @@ export class transcriptClass {
   
 
   async spanishTranslate() {
-    const result = await deepLTranslate({ videoID: this.videoID })
+    // const result = await deepLTranslate({ videoID: this.videoID })
+    const result = await gptTranslate({ videoID: this.videoID })
     this.spanishTranscript = result.data
     spanishTranscript.set(result.data)
 
