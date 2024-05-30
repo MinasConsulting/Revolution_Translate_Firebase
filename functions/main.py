@@ -362,6 +362,8 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
     #     # print(response.choices[0].message.content)
 
     def translate_item(index, item):
+        if item['messages'][-1]["content"].strip().replace(" ","") == "":
+            return index, ""
         response = gptClient.chat.completions.create(
             model=gptModel,
             messages=item['messages']
