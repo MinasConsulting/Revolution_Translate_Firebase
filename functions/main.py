@@ -20,11 +20,13 @@ from google.cloud.video.transcoder_v1.services.transcoder_service import (
 )
 from rapidfuzz import fuzz
 from html import unescape
+from openai import OpenAI
 
 app = initialize_app()
 db = firestore.client()
 
 deeplTrans = deepl.Translator(os.environ['DEEPLKEY'])
+gptClient = OpenAI(api_key=os.environ['CHATGPTKEY'])
 
 project_id = "revolutiontranslate"
 region = "us-central1"
@@ -226,12 +228,7 @@ def _seconds_to_formatted_time(total_seconds: float) -> str:
 
     return formatted_time
 
-# @https_fn.on_call(
-#     cors=options.CorsOptions(
-#         cors_origins="http://localhost:5173",  # Adjust to your specific origins
-#         cors_methods=["POST"],  # Specify allowed methods
-#     )
-# )
+
 @https_fn.on_request(
     cors=options.CorsOptions(
         cors_origins=[
@@ -312,6 +309,127 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     response = json.dumps({"data":completeData['spanishTranscript']})
     # Return a response
     return https_fn.Response(response, status=200)
+
+
+@https_fn.on_request(
+    cors=options.CorsOptions(
+        cors_origins=[
+            "http://localhost:5173",  # Add your specific origins here
+            r"https://revolutiontranslate\.web\.app",
+            r"revolutiontranslate\.web\.app$"
+        ],
+        cors_methods=["POST"],  # Specify allowed methods
+    )
+)
+def gptTranslate(req: https_fn.Request) -> https_fn.Response:
+    systemDescription = """You are a translator from American English to Mexican Spanish. 
+                            Your goal is to take part of an english transcript and translate it to Spanish. 
+                            The original english transcript is from a Christian Sermon. 
+                            The translated transcript will then be used to create a voiceover of the original sermon. 
+                            Initially a section of the transcript will be provided for context. 
+                            Then I will provide an individual line for you to translate.""".replace("\n","")
+    
+    gptModel = "gpt-3.5-turbo-0125"
+    
+    # Check if the request method is POST
+    if req.method != "POST":
+        return https_fn.Response("Method not allowed", status=405)
+
+    # Parse the JSON data from the request body
+    try:
+        data = json.loads(req.data)
+        data = data['data']
+        videoID = data['videoID']
+    except Exception as e:
+        return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
+    
+    returnData = _getTranscript(videoID)
+    englishData = returnData['englishTranscript']
+
+    testList = []
+    for index in range(len(englishData)):
+        testList.append(_generateTrainingMessages(englishData,index,systemDescription))
+    
+    splitTranslate = []
+    for item in testList:
+        response = gptClient.chat.completions.create(
+            model = gptModel,
+            messages = item['messages'])
+        splitTranslate.append(response.choices[0].message.content)
+    
+
+    print(f"Spanish Translate Len: {len(splitTranslate)}")
+    print(f"English Data Len: {len(englishData)}")
+
+    batch = db.batch()
+
+    dataDict = {'SRTID':0,
+                'startTime':'',
+                'endTime':'',
+                'genTime':'',
+                'text':'',
+                'genUser':'',
+                'currentEdit':True,
+                'genUser':'gptTranslate',
+                'genModel':gptModel}
+    
+    dataReturn = []
+    
+    for i,line in enumerate(englishData):
+
+        # print(f"{i}: {line['text']} \n{splitTranslate[i]}\n\n")
+
+        dataDict['SRTID'] = line['SRTID']
+        dataDict['startTime'] = line['startTime']
+        dataDict['endTime'] = line['endTime']
+        dataDict['text'] = splitTranslate[i]
+        dataDict['genTime'] = datetime.now()
+        dataDict['parentEnglish'] = line['docID']
+        dataDict['startSec'] = line['startSec']
+        dataDict['endSec'] = line['endSec']
+
+        doc_ref = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
+        batch.set(doc_ref,dataDict.copy())
+
+        dataDict['genTime'] = dataDict['genTime'].isoformat()
+        
+        dataReturn.append(dataDict.copy())
+
+    batch.commit()
+
+    completeData = _getTranscript(videoID)
+
+    response = json.dumps({"data":completeData['spanishTranscript']})
+    # Return a response
+    return https_fn.Response(response, status=200)
+
+
+def _generateTrainingMessages(englishScript,lineIndex,systemDescription,contextBack=4,contextForward=3):
+
+    if lineIndex - contextBack < 0:
+        startContext = 0
+    else:
+        startContext = lineIndex - contextBack
+
+    if lineIndex + contextForward > len(englishScript):
+        endContext = len(englishScript)
+    else:
+        endContext = lineIndex + contextForward
+    
+    messagesJSON = {}
+    messagesJSON['messages'] = []
+    messagesJSON['messages'].append({"role": "system", "content": systemDescription})
+
+    originalTranscript = ""
+    for item in englishScript[startContext:endContext]:
+        originalTranscript += item['text']+" "
+
+    messagesJSON['messages'].append({"role": "user", "content":originalTranscript})
+    messagesJSON['messages'].append({"role": "assistant", "content":"Got it, please send me transcript pieces for translating."})
+
+    messagesJSON['messages'].append({"role": "user", "content":englishScript[lineIndex]['text']})
+
+    return messagesJSON
 
 
 @https_fn.on_request(
