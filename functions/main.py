@@ -319,7 +319,8 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
             r"revolutiontranslate\.web\.app$"
         ],
         cors_methods=["POST"],  # Specify allowed methods
-    )
+    ),
+    timeout_sec=360
 )
 def gptTranslate(req: https_fn.Request) -> https_fn.Response:
     systemDescription = """You are a translator from American English to Mexican Spanish. 
