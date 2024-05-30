@@ -378,12 +378,12 @@ async function handleEditComplete(event) {
                         </div>
                         <div class="text-container">
                             {#if englishVis}
-                                <div class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript" data-is-placeholder={!line.text} style="font-size: {fontSize}px"> 
+                                <div data-placeholder="Insert text..." class="english-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={line.docID} data-start-sec={line.startSec} data-end-sec={line.endSec} data-language="englishTranscript" data-is-placeholder={!line.text} style="font-size: {fontSize}px"> 
                                     {line.text}
                                 </div>
                             {/if}
                             {#if spanishVis && $spanishTranscript.length > 0 && $spanishTranscript.length === $englishTranscript.length}
-                                <div class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript" data-is-placeholder={!$spanishTranscript[index].text} style="font-size: {fontSize}px"> 
+                                <div data-placeholder="Insert text..." class="spanish-line" contentEditable="false" on:dblclick={handleDoubleClick} data-docID={$spanishTranscript[index].docID} data-start-sec={$spanishTranscript[index].startSec} data-end-sec={$spanishTranscript[index].endSec} data-language="spanishTranscript" data-is-placeholder={!$spanishTranscript[index].text} style="font-size: {fontSize}px"> 
                                     {$spanishTranscript[index].text}
                                 </div>
                             {/if}
