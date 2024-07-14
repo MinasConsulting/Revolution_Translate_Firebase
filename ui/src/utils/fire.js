@@ -50,22 +50,45 @@ export class transcriptClass {
 
   }
 
+  // async downloadVideoBLOB(videoName) {
+  //   console.log(`videos/${videoName}`)
+  //   const storageRef = ref(storage, `videos/${videoName}`)
+  
+  //   try {
+  //     // Get the blob from the Firebase storage reference
+  //     const blob = await getBlob(storageRef);
+  
+  //     // Create a link element, use it to download the Blob, and remove it
+  //     const link = document.createElement('a');
+  //     link.href = URL.createObjectURL(blob);
+  //     link.download = videoName;
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
+  //     URL.revokeObjectURL(link.href);
+  //     console.log("File downloaded successfully");
+  //     return true;
+  //   } catch (error) {
+  //     console.error("Error downloading file:", error);
+  //     return false;
+  //   }
+  // }
+
   async downloadVideo(videoName) {
-    console.log(`videos/${videoName}`)
-    const storageRef = ref(storage, `videos/${videoName}`)
+    console.log(`videos/${videoName}`);
+    const storageRef = ref(storage, `videos/${videoName}`);
   
     try {
-      // Get the blob from the Firebase storage reference
-      const blob = await getBlob(storageRef);
+      // Get the download URL from the Firebase storage reference
+      const downloadURL = await getDownloadURL(storageRef);
   
-      // Create a link element, use it to download the Blob, and remove it
+      // Create a link element, set the href to the download URL, and trigger the download
       const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
+      link.href = downloadURL;
       link.download = videoName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
       console.log("File downloaded successfully");
       return true;
     } catch (error) {
@@ -73,6 +96,10 @@ export class transcriptClass {
       return false;
     }
   }
+  
+  
+  
+  
   
 
   async refreshTranscript () {
