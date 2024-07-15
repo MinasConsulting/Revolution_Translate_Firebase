@@ -276,12 +276,17 @@ export async function saveChange(event,videoID) {
 }
 
 
+
 export async function uploadVideo(file, onProgress) {
+  const metadata = {
+    contentDisposition: `attachment; filename="${file.name}"`
+  };
 
   const storageRef = ref(storage, `videos/${file.name}`);
 
   try {
-    currentUploadTask = uploadBytesResumable(storageRef, file);
+    // Include the metadata in the upload
+    currentUploadTask = uploadBytesResumable(storageRef, file, metadata);
 
     currentUploadTask.on(
       "state_changed",
