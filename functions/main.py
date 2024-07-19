@@ -332,7 +332,7 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
                             Then I will provide an individual line for you to translate.
                             Please do not translate text that is enclosed by these characters <>.""".replace("\n","")
     
-    gptModel = "gpt-3.5-turbo-0125"
+    gptModel = "gpt-4o-mini"
     
     # Check if the request method is POST
     if req.method != "POST":
