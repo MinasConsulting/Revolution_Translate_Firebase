@@ -329,8 +329,9 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
                             The original english transcript is from a Christian Sermon. 
                             The translated transcript will then be used to create a voiceover of the original sermon. 
                             Initially a section of the transcript will be provided for context. 
-                            Then I will provide an individual line for you to translate.
-                            Please do not translate text that is enclosed by these characters <>.""".replace("\n","")
+                            Then I will provide an individual line for you to translate. 
+                            Please do not translate text that is enclosed by these characters <>. 
+                            For example, <Revolution Church> should not be translated.""".replace("\n","")
     
     gptModel = "gpt-4o-mini"
     
