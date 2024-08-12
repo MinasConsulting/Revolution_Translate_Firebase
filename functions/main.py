@@ -389,6 +389,11 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
             messages=item['messages']
         )
         return index, response.choices[0].message.content
+    
+    root_doc_ref = db.collection("messageVideos").document(videoID)
+    root_doc_ref.update({
+        'translateInProgress': True
+    })
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(translate_item, i, item): i for i, item in enumerate(testList)}
@@ -441,6 +446,9 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
 
     response = json.dumps({"data":completeData['spanishTranscript']})
     # Return a response
+    root_doc_ref.update({
+        'translateInProgress': False
+    })
     return https_fn.Response(response, status=200)
 
 

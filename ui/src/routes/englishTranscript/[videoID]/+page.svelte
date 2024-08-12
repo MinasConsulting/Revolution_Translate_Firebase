@@ -47,7 +47,10 @@
         const fetchTranscriptAndInitPlayer = async () => {
             await tsClass.init();
 
-            if ($spanishTranscript.length>0) {
+            if (tsClass.videoData.translateInProgress == true){
+                translateLock = true;
+            }
+            else if ($spanishTranscript.length>0) {
                 translateLock = true;
                 if ($englishTranscript.length !== $spanishTranscript.length){
                     alert("Transcript sync error. Editing disabled. Please reach out to Evan Stoelzel.")
@@ -251,7 +254,7 @@ async function handleEditComplete(event) {
     }
 
     async function handleTranslateClick() {
-        if ($spanishTranscript.length===0) {
+        if ($spanishTranscript.length===0 && !translateLock) {
             const confirmation = window.confirm('Are you sure? All English edits must be complete before proceeding with AI translation.');
             if (confirmation) {
                 translateLock = true

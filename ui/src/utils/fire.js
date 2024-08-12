@@ -47,6 +47,7 @@ export class transcriptClass {
 
 
     this.videoURL = await getDownloadURL(ref(storage, videoData.videoLink))
+    this.videoData = videoData
 
   }
 
