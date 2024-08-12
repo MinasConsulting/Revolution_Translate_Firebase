@@ -121,7 +121,9 @@ def transcriptKickOff(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
 
 
 
-@storage_fn.on_object_finalized()
+BATCH_SIZE = 100  # Set a smaller batch size to avoid timeouts
+
+@storage_fn.on_object_finalized(memory=512, timeout_sec=540)
 def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]) -> None:
     bucket_name = event.data.bucket
     file_name = event.data.name
@@ -142,35 +144,40 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
 
     videoName = result['annotation_results'][0]['input_uri'].split(r"/")[-1]
 
-    print("Starting transcript process for "+videoName)
+    print("Starting transcript process for " + videoName)
 
     root_doc_ref = db.collection("messageVideos").document()
-
     genTime = datetime.now()
 
     root_doc_ref.set({
-            'videoName':videoName,
-             'publishTime':genTime,
-             'videoLink': videoLink
+        'videoName': videoName,
+        'publishTime': genTime,
+        'videoLink': videoLink
     })
 
     videoID = root_doc_ref.id
-
     batch = db.batch()
+    batch_size = 0
 
-    dataDict = {'SRTID':0,
-                'startTime':'',
-                'endTime':'',
-                'genTime':genTime,
-                'startSec':'',
-                'endSec':'',
-                'text':'',
-                'genUser':'Google Video Intellegence Annotate',
-                'currentEdit':True}
+    dataDict = {
+        'SRTID': 0,
+        'startTime': '',
+        'endTime': '',
+        'genTime': genTime,
+        'startSec': '',
+        'endSec': '',
+        'text': '',
+        'genUser': 'Google Video Intelligence Annotate',
+        'currentEdit': True
+    }
     
     theseWords = []
-
     SRTID = 0
+
+    def commit_batch(batch, size):
+        if size > 0:
+            batch.commit()
+
     for x in result['annotation_results'][0]['speech_transcriptions']:
         thisText = ""
         startTime = None
@@ -179,42 +186,53 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
             continue
         for index, word in enumerate(thisIter):
             theseWords.append({
-                'wordStartSec':word['start_time'].get('seconds',0)+word['start_time'].get('nanos',0)*1e-9,
-                'wordEndSec':word['end_time'].get('seconds',0)+word['end_time'].get('nanos',0)*1e-9,
-                'word':word['word']
+                'wordStartSec': word['start_time'].get('seconds', 0) + word['start_time'].get('nanos', 0) * 1e-9,
+                'wordEndSec': word['end_time'].get('seconds', 0) + word['end_time'].get('nanos', 0) * 1e-9,
+                'word': word['word']
             })
 
             if thisText == "":
                 startTime = word['start_time']
 
-            punctCheck = any(char in word['word'] for char in [".",'!','?'])
+            punctCheck = any(char in word['word'] for char in [".", '!', '?'])
 
             if index == len(thisIter) - 1 and not punctCheck:
                 word['word'] += "."
                 punctCheck = True
             
-            thisText += word['word']+" "
+            thisText += word['word'] + " "
 
             if punctCheck:
                 endTime = word['end_time']
 
                 dataDict['SRTID'] = SRTID
-                dataDict['startSec'] = startTime.get('seconds',0) + startTime.get('nanos',0)*1e-9
-                dataDict['endSec'] = endTime.get('seconds',0) + endTime.get('nanos',0)*1e-9
+                dataDict['startSec'] = startTime.get('seconds', 0) + startTime.get('nanos', 0) * 1e-9
+                dataDict['endSec'] = endTime.get('seconds', 0) + endTime.get('nanos', 0) * 1e-9
                 dataDict['startTime'] = _seconds_to_formatted_time(dataDict['startSec'])
                 dataDict['endTime'] = _seconds_to_formatted_time(dataDict['endSec'])
                 dataDict['text'] = thisText
 
                 doc_ref = db.collection("messageVideos").document(videoID).collection("englishTranscript").document()
-                batch.set(doc_ref,dataDict.copy())
+                batch.set(doc_ref, dataDict.copy())
+                batch_size += 1
+
                 for k in theseWords:
                     words_ref = root_doc_ref.collection("words").document()
-                    batch.set(words_ref,k)
+                    batch.set(words_ref, k)
+                    batch_size += 1
+
+                    if batch_size >= BATCH_SIZE:
+                        commit_batch(batch, batch_size)
+                        batch = db.batch()
+                        batch_size = 0
 
                 thisText = ""
                 SRTID += 1
                 theseWords = []
-    batch.commit()
+
+    # Commit any remaining operations
+    commit_batch(batch, batch_size)
+
     print(f"{videoName} processing complete.")
 
 
