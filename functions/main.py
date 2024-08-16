@@ -365,6 +365,12 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
     
+    root_doc_ref = db.collection("messageVideos").document(videoID)
+    root_doc = root_doc_ref.get()
+    root_doc = root_doc.to_dict()
+    if root_doc.get('translateInProgress'):
+        return https_fn.Response("Translation in progress", status=400)
+    
     returnData = _getTranscript(videoID)
     englishData = returnData['englishTranscript']
 
@@ -389,8 +395,7 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
             messages=item['messages']
         )
         return index, response.choices[0].message.content
-    
-    root_doc_ref = db.collection("messageVideos").document(videoID)
+
     root_doc_ref.update({
         'translateInProgress': True
     })
