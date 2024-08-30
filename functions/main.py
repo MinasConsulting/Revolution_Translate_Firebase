@@ -342,13 +342,15 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     timeout_sec=360
 )
 def gptTranslate(req: https_fn.Request) -> https_fn.Response:
-    systemDescription = """You are a translator from American English to Mexican Spanish. 
-                            Your goal is to take part of an english transcript and translate it to Spanish. 
-                            The original english transcript is from a Christian Sermon. 
-                            The translated transcript will then be used to create a voiceover of the original sermon. 
-                            Initially a section of the transcript will be provided for context. 
-                            Then I will provide an individual line for you to translate. 
-                            Please do not translate text that is enclosed by these characters <>. 
+    systemDescription = """You are a translator from American English to Spanish.
+                            The style of Spanish used should be understandable by all Spanish speaking Latin American countries.
+                            Local slang and colloquialisms should be avoided.
+                            Your goal is to take part of an English transcript and translate it to Spanish.
+                            The original English transcript is from a Christian Sermon.
+                            The translated transcript will then be used to create a voiceover of the original sermon.
+                            Initially a section of the transcript will be provided for context.
+                            Then I will provide an individual line for you to translate.
+                            Please do not translate text that is enclosed by these characters <>.
                             For example, <Revolution Church> should not be translated.""".replace("\n","")
     
     gptModel = "gpt-4o-mini"
