@@ -321,6 +321,7 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
         
         dataReturn.append(dataDict.copy())
 
+
     batch.commit()
 
     completeData = _getTranscript(videoID)
