@@ -114,6 +114,7 @@ export class transcriptClass {
       this.spanishTranscript = transResult.data.spanishTranscript
       spanishTranscript.set(this.spanishTranscript)
     }
+    
 
     // Detect sync Issues
     // console.log("English Length",this.englishTranscript.length)
