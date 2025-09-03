@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "revolutiontranslate"
-  }
+    "default": "revolutiontranslate",
+    "dev": "revolutiontranslate-dev"
+  },
+  "targets": {},
+  "etags": {}
 }

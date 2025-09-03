@@ -29,7 +29,12 @@ db = firestore.client()
 deeplTrans = deepl.Translator(os.environ['DEEPLKEY'])
 gptClient = OpenAI(api_key=os.environ['CHATGPTKEY'])
 
-project_id = "revolutiontranslate"
+ # Determine the current GCP project dynamically (no hardcoded project ids)
+try:
+    import google.auth
+    _, project_id = google.auth.default()
+except Exception:
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT") or os.environ.get("GCP_PROJECT") or os.environ.get("GCLOUD_PROJECT")
 region = "us-central1"
 
 
