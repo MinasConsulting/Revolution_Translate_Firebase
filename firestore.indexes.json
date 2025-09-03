@@ -1,5 +1,96 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "englishTranscript",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "currentEdit",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "SRTID",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "englishTranscript",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "currentEdit",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startSec",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "englishTranscript",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "genUser",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startSec",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "spanishTranscript",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "currentEdit",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "SRTID",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "spanishTranscript",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "currentEdit",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startSec",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "spanishTranscript",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "genUser",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startSec",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    }
+  ],
   "fieldOverrides": [
     {
       "collectionGroup": "textContent",

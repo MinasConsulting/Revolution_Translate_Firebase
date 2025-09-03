@@ -253,28 +253,17 @@ def _seconds_to_formatted_time(total_seconds: float) -> str:
     return formatted_time
 
 
-@https_fn.on_request(
-    cors=options.CorsOptions(
-        cors_origins=[
-            "http://localhost:5173",  # Add your specific origins here
-            r"https://revolutiontranslate\.web\.app",
-            r"revolutiontranslate\.web\.app$"
-        ],
-        cors_methods=["POST"],  # Specify allowed methods
-    )
-)
-def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
-    # Check if the request method is POST
-    if req.method != "POST":
-        return https_fn.Response("Method not allowed", status=405)
 
-    # Parse the JSON data from the request body
+@https_fn.on_call()
+def deepLTranslate(req: https_fn.CallableRequest):
     try:
-        data = json.loads(req.data)
-        data = data['data']
-        videoID = data['videoID']
-    except Exception as e:
-        return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
+        data = req.data or {}
+        videoID = data["videoID"]
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required field: videoID"
+        )
     
     returnData = _getTranscript(videoID)
     englishData = returnData['englishTranscript']
@@ -283,13 +272,11 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     for item in englishData:
         deepLEnglish += '<p>'+item['text']+'</p>'
     translationResult = deeplTrans.translate_text(deepLEnglish,source_lang='EN',target_lang='ES',split_sentences='nonewlines',tag_handling='html',formality='less')
-    # print(translationResult)
     translationResult = unescape(translationResult.text)
     splitTranslate = translationResult.split('</p><p>')
     splitTranslate[0] = splitTranslate[0].replace('<p>','')
     splitTranslate[-1] = splitTranslate[-1].replace('</p>','')
     
-
     print(f"Split Translate Len: {len(splitTranslate)}")
     print(f"English Data Len: {len(englishData)}")
 
@@ -306,9 +293,6 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
     dataReturn = []
     
     for i,line in enumerate(englishData):
-
-        # print(f"{i}: {line['text']} \n{splitTranslate[i]}\n\n")
-
         dataDict['SRTID'] = line['SRTID']
         dataDict['startTime'] = line['startTime']
         dataDict['endTime'] = line['endTime']
@@ -326,58 +310,45 @@ def deepLTranslate(req: https_fn.Request) -> https_fn.Response:
         
         dataReturn.append(dataDict.copy())
 
-
     batch.commit()
 
     completeData = _getTranscript(videoID)
-
-    response = json.dumps({"data":completeData['spanishTranscript']})
-    # Return a response
-    return https_fn.Response(response, status=200)
+    return completeData['spanishTranscript']
 
 
-@https_fn.on_request(
-    cors=options.CorsOptions(
-        cors_origins=[
-            "http://localhost:5173",  # Add your specific origins here
-            r"https://revolutiontranslate\.web\.app",
-            r"revolutiontranslate\.web\.app$"
-        ],
-        cors_methods=["POST"],  # Specify allowed methods
-    ),
-    timeout_sec=360
-)
-def gptTranslate(req: https_fn.Request) -> https_fn.Response:
+
+@https_fn.on_call(timeout_sec=360)
+def gptTranslate(req: https_fn.CallableRequest):
     systemDescription = """You are a translator from American English to Spanish.
-                            The style of Spanish used should be understandable by all Spanish speaking Latin American countries.
-                            Local slang and colloquialisms should be avoided.
-                            Your goal is to take part of an English transcript and translate it to Spanish.
-                            The original English transcript is from a Christian Sermon.
-                            The translated transcript will then be used to create a voiceover of the original sermon.
-                            Initially a section of the transcript will be provided for context.
-                            Then I will provide an individual line for you to translate.
-                            Please do not translate text that is enclosed by these characters <>.
-                            For example, <Revolution Church> should not be translated.""".replace("\n","")
+                              The style of Spanish used should be understandable by all Spanish speaking Latin American countries.
+                              Local slang and colloquialisms should be avoided.
+                              Your goal is to take part of an English transcript and translate it to Spanish.
+                              The original English transcript is from a Christian Sermon.
+                              The translated transcript will then be used to create a voiceover of the original sermon.
+                              Initially a section of the transcript will be provided for context.
+                              Then I will provide an individual line for you to translate.
+                              Please do not translate text that is enclosed by these characters <>.
+                              For example, &lt;Revolution Church&gt; should not be translated.""".replace("\n","")
     
     gptModel = "gpt-4o-mini"
     
-    # Check if the request method is POST
-    if req.method != "POST":
-        return https_fn.Response("Method not allowed", status=405)
-
-    # Parse the JSON data from the request body
     try:
-        data = json.loads(req.data)
-        data = data['data']
-        videoID = data['videoID']
-    except Exception as e:
-        return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
+        data = req.data or {}
+        videoID = data["videoID"]
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required field: videoID"
+        )
     
     root_doc_ref = db.collection("messageVideos").document(videoID)
     root_doc = root_doc_ref.get()
     root_doc = root_doc.to_dict()
     if root_doc.get('translateInProgress'):
-        return https_fn.Response("Translation in progress", status=400)
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
+            message="Translation in progress"
+        )
     
     returnData = _getTranscript(videoID)
     englishData = returnData['englishTranscript']
@@ -385,15 +356,6 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
     testList = []
     for index in range(len(englishData)):
         testList.append(_generateTrainingMessages(englishData,index,systemDescription))
-    
-    # splitTranslate = []
-    # # need to paralellize for faster processing
-    # for item in testList:
-    #     response = gptClient.chat.completions.create(
-    #         model = gptModel,
-    #         messages = item['messages'])
-    #     splitTranslate.append(response.choices[0].message.content)
-    #     # print(response.choices[0].message.content)
 
     def translate_item(index, item):
         if item['messages'][-1]["content"].strip().replace(" ","") == "":
@@ -404,9 +366,7 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
         )
         return index, response.choices[0].message.content
 
-    root_doc_ref.update({
-        'translateInProgress': True
-    })
+    root_doc_ref.update({'translateInProgress': True})
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(translate_item, i, item): i for i, item in enumerate(testList)}
@@ -415,7 +375,6 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
             index, translation = future.result()
             splitTranslate[index] = translation
     
-
     print(f"Spanish Translate Len: {len(splitTranslate)}")
     print(f"English Data Len: {len(englishData)}")
 
@@ -434,9 +393,6 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
     dataReturn = []
     
     for i,line in enumerate(englishData):
-
-        # print(f"{i}: {line['text']} \n{splitTranslate[i]}\n\n")
-
         dataDict['SRTID'] = line['SRTID']
         dataDict['startTime'] = line['startTime']
         dataDict['endTime'] = line['endTime']
@@ -456,13 +412,8 @@ def gptTranslate(req: https_fn.Request) -> https_fn.Response:
     batch.commit()
 
     completeData = _getTranscript(videoID)
-
-    response = json.dumps({"data":completeData['spanishTranscript']})
-    # Return a response
-    root_doc_ref.update({
-        'translateInProgress': False
-    })
-    return https_fn.Response(response, status=200)
+    root_doc_ref.update({'translateInProgress': False})
+    return completeData['spanishTranscript']
 
 
 def _generateTrainingMessages(englishScript,lineIndex,systemDescription,contextBack=4,contextForward=3):
@@ -493,37 +444,20 @@ def _generateTrainingMessages(englishScript,lineIndex,systemDescription,contextB
     return messagesJSON
 
 
-@https_fn.on_request(
-    cors=options.CorsOptions(
-        cors_origins=[
-            "http://localhost:5173",  # Add your specific origins here
-            r"https://revolutiontranslate\.web\.app",
-            r"revolutiontranslate\.web\.app$"
-        ],
-        cors_methods=["POST"],  # Specify allowed methods
-    )
-)
-def getTranscript(req: https_fn.Request) -> https_fn.Response:
 
-    # Check if the request method is POST
-    if req.method != "POST":
-        return https_fn.Response("Method not allowed", status=405)
-
-    # Parse the JSON data from the request body
+@https_fn.on_call()
+def getTranscript(req: https_fn.CallableRequest):
     try:
-        data = json.loads(req.data)
-        data = data['data']
-        videoID = data['videoID']
-    except Exception as e:
-        return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
+        data = req.data or {}
+        videoID = data["videoID"]
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required field: videoID"
+        )
     
     returnData = _getTranscript(videoID)
-
-    
-
-    returnResponse = json.dumps({"data":returnData})
-    # Return a response
-    return https_fn.Response(returnResponse, status=200)
+    return returnData
 
 def _getTranscript(videoID):
     returnData = {}
@@ -562,33 +496,21 @@ def stampToSec(stamp):
     totalSeconds = hours * 3600 + minutes * 60 + seconds + milliseconds / 1000
     return totalSeconds
 
-@https_fn.on_request(
-    cors=options.CorsOptions(
-        cors_origins=[
-            "http://localhost:5173",  # Add your specific origins here
-            r"https://revolutiontranslate\.web\.app",
-            r"revolutiontranslate\.web\.app$"
-        ],
-        cors_methods=["POST"],  # Specify allowed methods
-    )
-)
-def saveChange(req: https_fn.Request) -> https_fn.Response:
-    # Check if the request method is POST
-    if req.method != "POST":
-        return https_fn.Response("Method not allowed", status=405)
 
-    # Parse the JSON data from the request body
+@https_fn.on_call()
+def saveChange(req: https_fn.CallableRequest):
     try:
-        data = json.loads(req.data)
-        data = data['data']
-    except Exception as e:
-        return https_fn.Response(f"Error parsing JSON: {str(e)}", status=400)
+        data = req.data or {}
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Invalid call payload"
+        )
     
     originText_ref = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document(data['originDocID'])
     originText_results = originText_ref.get()
     originTextDict = originText_results.to_dict()
     originTextDict['parentDoc'] = originText_results.id
-
 
     newTextSentences = _textToSentences(originTextDict['text'],data['newText'])
 
@@ -596,14 +518,13 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
 
     if len(newTextSentences) == 1 or data['langSource'] == 'spanishTranscript' or data['newText'] == '':
         _saveNoSplit(data,originTextDict)
-        return https_fn.Response(json.dumps({"data":"None"}), status=200)
+        return {"ok": True}
     
     currentStartSec = originTextDict['startSec']
 
     words_ref = db.collection("messageVideos").document(data['videoID']).collection("words")
     query = words_ref.where(filter=firestore.FieldFilter("wordStartSec",">=",currentStartSec)).where(filter=firestore.FieldFilter("wordStartSec","<",originTextDict['endSec'])).order_by('wordStartSec')
 
-    # Get documents matching the query
     origin_words = query.get()
 
     batch = db.batch()
@@ -620,7 +541,7 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
         except ValueError:
             _saveNoSplit(data,originTextDict)
             print("Split Failed.")
-            return https_fn.Response(json.dumps({"data":"None"}), status=200)
+            return {"ok": True}
         print("********")
         print("N:"+sentence)
 
@@ -651,14 +572,13 @@ def saveChange(req: https_fn.Request) -> https_fn.Response:
         currentStartSec = newEnd
         query = words_ref.where(filter=firestore.FieldFilter("wordStartSec",">=",currentStartSec)).where(filter=firestore.FieldFilter("wordStartSec","<",originTextDict['endSec'])).order_by('wordStartSec')
 
-        # Get documents matching the query
         origin_words = query.get()
 
     batch.commit()
     oldDocRef = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document(originTextDict['parentDoc'])
     oldDocRef.set({"currentEdit": False},merge=True)
 
-    return https_fn.Response(json.dumps({"data":"None"}), status=200)
+    return {"ok": True}
 
 
 def _saveNoSplit(data,originTextDict):
