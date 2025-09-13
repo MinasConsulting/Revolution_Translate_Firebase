@@ -12,9 +12,12 @@ from google.cloud.video.transcoder_v1.services.transcoder_service import (
     TranscoderServiceClient,
 )
 from rapidfuzz import fuzz
-from html import unescape
 from openai import OpenAI
 import concurrent.futures
+
+from pydantic import BaseModel, conlist
+from typing import List
+import tempfile
 
 app = initialize_app()
 db = firestore.client()
@@ -230,7 +233,9 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
     # Commit any remaining operations
     commit_batch(batch, batch_size)
 
-    print(f"{videoName} processing complete.")
+    print(f"English {videoName} processing complete.")
+
+    batchGPTtranslatorSubmit(videoID)
 
 
 def _seconds_to_formatted_time(total_seconds: float) -> str:
@@ -244,6 +249,95 @@ def _seconds_to_formatted_time(total_seconds: float) -> str:
 
     return formatted_time
 
+def _getSystemInstructions(language):
+    doc_ref = db.collection("params").document("translationSystemInstructions")
+    doc = doc_ref.get(field_paths=[language])
+    langVal = doc.to_dict()[language]
+    return langVal
+
+def batchGPTtranslatorSubmit(videoID,language="spanish"):
+    returnData = _getTranscript(videoID)
+    returnData = returnData['englishTranscript']
+    full_lines = [item["text"] for item in returnData]
+
+    N = len(full_lines)
+
+    CHUNK_SIZE = 200
+
+    systemInstructions = _getSystemInstructions(language)
+
+    def build_schema(expected_len: int):
+        """Strict schema enforcing exact length for the current chunk."""
+        class LinesWrapper(BaseModel):
+            spanishTranscript: conlist(str, min_length=expected_len, max_length=expected_len)
+        schema = LinesWrapper.model_json_schema()
+        schema["additionalProperties"] = False
+        return schema
+
+    def build_full_content(chunk_start: int, chunk_end: int) -> str:
+        """Compose two-block input: full transcript + specific subset JSON."""
+        fullContent = "# MENSAJE COMPLETO EN INGLÉS PARA CONTEXTO\n\n"
+        fullContent += "\n".join(full_lines)
+        fullContent += "\n\n# LÍNEAS ESPECÍFICAS JSON\n\n"
+        fullContent += json.dumps(
+            {"englishTranscript": full_lines[chunk_start:chunk_end]},
+            ensure_ascii=False,
+        )
+        return fullContent
+
+    # --- Build all requests into JSONL ---
+    lines = []
+    for i in range(0, N, CHUNK_SIZE):
+        chunk_start, chunk_end = i, min(i + CHUNK_SIZE, N)
+        expected_len = chunk_end - chunk_start
+        schema = build_schema(expected_len)
+        fullContent = build_full_content(chunk_start, chunk_end)
+
+        request_obj = {
+            "custom_id": f"{videoID}_{chunk_start}_{chunk_end}",
+            "method": "POST",
+            "url": "/v1/responses",
+            "body": {
+                "model": "gpt-5",
+                "reasoning": {"effort": "low"},
+                "input": [
+                    {"role": "developer", "content": systemInstructions},
+                    {"role": "user", "content": fullContent},
+                ],
+                "text": {
+                    "format": {
+                        "type": "json_schema",
+                        "name": "LinesWrapper",
+                        "schema": schema,
+                        "strict": True,
+                    }
+                },
+            },
+        }
+        lines.append(json.dumps(request_obj, ensure_ascii=False))
+
+    # Save JSONL to a file
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+        for line in lines:
+            f.write(line + "\n")
+        jsonl_path = f.name
+
+    print("JSONL ready at:", jsonl_path)
+
+    # --- Upload and create batch ---
+    infile = gptClient.files.create(file=open(jsonl_path, "rb"), purpose="batch")
+
+    batch = gptClient.batches.create(
+        input_file_id=infile.id,
+        endpoint="/v1/responses",
+        completion_window="24h",
+    )
+
+    print("Batch ID:", batch.id)
+
+    root_doc_ref = db.collection("messageVideos").document(videoID)
+    root_doc_ref.update({'translateInProgress': True, 
+                            'translateBatchID': batch.id})
 
 
 @https_fn.on_call(timeout_sec=360)
