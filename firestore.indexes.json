@@ -46,6 +46,21 @@
       "density": "SPARSE_ALL"
     },
     {
+      "collectionGroup": "messageVideos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "translateInProgress",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "translateBatchID",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
       "collectionGroup": "spanishTranscript",
       "queryScope": "COLLECTION",
       "fields": [

@@ -1,5 +1,5 @@
 # The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
-from firebase_functions import https_fn, storage_fn
+from firebase_functions import https_fn, storage_fn, scheduler_fn
 
 # The Firebase Admin SDK to access Cloud Firestore.
 from firebase_admin import initialize_app, firestore, storage
@@ -338,6 +338,81 @@ def batchGPTtranslatorSubmit(videoID,language="spanish"):
     root_doc_ref = db.collection("messageVideos").document(videoID)
     root_doc_ref.update({'translateInProgress': True, 
                             'translateBatchID': batch.id})
+    
+@scheduler_fn.on_schedule(schedule="every 5 minutes", region="us-central1")
+def batchGPTtranslatorPoll(event: scheduler_fn.ScheduledEvent):
+    query = (db.collection("messageVideos")
+            .where("translateInProgress", "==", True)
+            .where("translateBatchID", "!=", None))
+    
+    for doc in query.stream():
+        data = doc.to_dict()
+        batch_id = data.get("translateBatchID")
+        if not batch_id:
+            continue
+        
+        print(f"Checking batch: {batch_id} for video {doc.id}")
+
+        batch = gptClient.batches.retrieve(batch_id)
+        state = getattr(batch, "status", getattr(batch, "state", "unknown"))
+        print(f" -> status = {state}")
+
+        if state == "completed" and getattr(batch, "output_file_id", None):
+            batchReturns = {}
+            out = gptClient.files.content(batch.output_file_id)
+
+            for line in out.text.splitlines():
+                if not line.strip():
+                    continue
+                result = json.loads(line)
+                thisID = result['custom_id']
+                batchReturns[thisID] = result.copy()
+
+            _batchGPTtranslatorCommit(batchReturns)
+            videoID = thisID.split('_')[0]
+            root_doc_ref = db.collection("messageVideos").document(videoID)
+            root_doc_ref.update({'translateInProgress': False})
+            print(f"Translation complete: Video {doc.id}")
+
+
+def _batchGPTtranslatorCommit(batchReturns):
+
+    sorted_keys = sorted(batchReturns.keys(),
+                         key=lambda k: tuple(map(int, k.rsplit("_", 2)[-2:])))
+    videoID = sorted_keys[0].split("_")[0]
+
+    newScript = []
+    for val in sorted_keys:
+        newScript.extend(json.loads(batchReturns[val]['response']['body']['output'][1]['content'][0]['text'])['spanishTranscript'])
+
+    engTranscript = _getTranscript(videoID)
+    engTranscript = engTranscript['englishTranscript']
+
+    batch = db.batch()
+    dataDict = {'SRTID':0,
+            'startTime':'',
+            'endTime':'',
+            'genTime':'',
+            'text':'',
+            'genUser':'',
+            'currentEdit':True,
+            'genUser':'gptTranslate',
+            'genModel':"gpt5"}
+    
+    for i, line in enumerate(engTranscript):
+        dataDict['SRTID'] = line['SRTID']
+        dataDict['startTime'] = line['startTime']
+        dataDict['endTime'] = line['endTime']
+        dataDict['text'] = newScript[i]
+        dataDict['genTime'] = datetime.now()
+        dataDict['parentEnglish'] = line['docID']
+        dataDict['startSec'] = line['startSec']
+        dataDict['endSec'] = line['endSec']
+
+        doc_ref = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
+        batch.set(doc_ref,dataDict.copy())
+
+    batch.commit()
 
 
 @https_fn.on_call(timeout_sec=360)
