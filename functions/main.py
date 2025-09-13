@@ -1,17 +1,10 @@
 # The Cloud Functions for Firebase SDK to create Cloud Functions and set up triggers.
-from firebase_functions import firestore_fn, https_fn, options, storage_fn, pubsub_fn
+from firebase_functions import https_fn, storage_fn
 
 # The Firebase Admin SDK to access Cloud Firestore.
 from firebase_admin import initialize_app, firestore, storage
-import boto3
 import os
-from pytube import YouTube
-import googleapiclient.discovery
-import requests
-import time
 from datetime import datetime
-from datetime import timedelta
-import deepl
 import json
 from google.cloud import videointelligence
 from google.cloud.video import transcoder_v1
@@ -26,7 +19,6 @@ import concurrent.futures
 app = initialize_app()
 db = firestore.client()
 
-deeplTrans = deepl.Translator(os.environ['DEEPLKEY'])
 gptClient = OpenAI(api_key=os.environ['CHATGPTKEY'])
 
  # Determine the current GCP project dynamically (no hardcoded project ids)
@@ -251,69 +243,6 @@ def _seconds_to_formatted_time(total_seconds: float) -> str:
     formatted_time = "{:02d}:{:02d}:{:02d},{:03d}".format(int(hours), int(minutes), int(seconds), int((seconds - int(seconds)) * 1000))
 
     return formatted_time
-
-
-
-@https_fn.on_call()
-def deepLTranslate(req: https_fn.CallableRequest):
-    try:
-        data = req.data or {}
-        videoID = data["videoID"]
-    except Exception:
-        raise https_fn.HttpsError(
-            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
-            message="Missing required field: videoID"
-        )
-    
-    returnData = _getTranscript(videoID)
-    englishData = returnData['englishTranscript']
-
-    deepLEnglish = ""
-    for item in englishData:
-        deepLEnglish += '<p>'+item['text']+'</p>'
-    translationResult = deeplTrans.translate_text(deepLEnglish,source_lang='EN',target_lang='ES',split_sentences='nonewlines',tag_handling='html',formality='less')
-    translationResult = unescape(translationResult.text)
-    splitTranslate = translationResult.split('</p><p>')
-    splitTranslate[0] = splitTranslate[0].replace('<p>','')
-    splitTranslate[-1] = splitTranslate[-1].replace('</p>','')
-    
-    print(f"Split Translate Len: {len(splitTranslate)}")
-    print(f"English Data Len: {len(englishData)}")
-
-    batch = db.batch()
-
-    dataDict = {'SRTID':0,
-                'startTime':'',
-                'endTime':'',
-                'genTime':'',
-                'text':'',
-                'genUser':'',
-                'currentEdit':True}
-    
-    dataReturn = []
-    
-    for i,line in enumerate(englishData):
-        dataDict['SRTID'] = line['SRTID']
-        dataDict['startTime'] = line['startTime']
-        dataDict['endTime'] = line['endTime']
-        dataDict['text'] = splitTranslate[i]
-        dataDict['genTime'] = datetime.now()
-        dataDict['genUser'] = 'DeepLTranslate'
-        dataDict['parentEnglish'] = line['docID']
-        dataDict['startSec'] = line['startSec']
-        dataDict['endSec'] = line['endSec']
-
-        doc_ref = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
-        batch.set(doc_ref,dataDict.copy())
-
-        dataDict['genTime'] = dataDict['genTime'].isoformat()
-        
-        dataReturn.append(dataDict.copy())
-
-    batch.commit()
-
-    completeData = _getTranscript(videoID)
-    return completeData['spanishTranscript']
 
 
 
