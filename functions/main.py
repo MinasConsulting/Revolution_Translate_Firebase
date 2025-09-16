@@ -19,10 +19,14 @@ from pydantic import BaseModel, conlist
 from typing import List
 import tempfile
 
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
 app = initialize_app()
 db = firestore.client()
 
 gptClient = OpenAI(api_key=os.environ['CHATGPTKEY'])
+sg = SendGridAPIClient(os.environ['SENDGRIDKEY'])
 
  # Determine the current GCP project dynamically (no hardcoded project ids)
 try:
@@ -373,6 +377,24 @@ def batchGPTtranslatorPoll(event: scheduler_fn.ScheduledEvent):
             root_doc_ref = db.collection("messageVideos").document(videoID)
             root_doc_ref.update({'translateInProgress': False})
             print(f"Translation complete: Video {doc.id}")
+            videoInfo = root_doc_ref.get()
+            videoInfo = videoInfo.to_dict()
+
+            notificationRef = db.collection("params").document("notification")
+            notificationDoc = notificationRef.get()
+            notificationDict = notificationDoc.to_dict()
+
+            message = Mail(
+                from_email = "RevolutionTranslateBot@minas.consulting",
+                to_emails = notificationDict['recipients'],
+                subject=f'Translation Ready for {videoInfo['videoName']}',
+                plain_text_content= f"Translation Ready for {videoInfo['videoName']}"
+            )
+
+            try:
+                response = sg.send(message)
+            except Exception as e:
+                print(e.message)
 
 
 def _batchGPTtranslatorCommit(batchReturns):

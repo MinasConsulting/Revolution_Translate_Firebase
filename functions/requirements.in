@@ -64,6 +64,7 @@ rapidfuzz
 requests
 rsa
 s3transfer
+sendgrid
 six
 sniffio
 tqdm
