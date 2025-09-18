@@ -303,7 +303,7 @@ def batchGPTtranslatorSubmit(videoID,language="spanish"):
             "url": "/v1/responses",
             "body": {
                 "model": "gpt-5",
-                "reasoning": {"effort": "low"},
+                "reasoning": {"effort": "medium"},
                 "input": [
                     {"role": "developer", "content": systemInstructions},
                     {"role": "user", "content": fullContent},

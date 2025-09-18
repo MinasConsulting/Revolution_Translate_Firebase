@@ -123,6 +123,24 @@ Usa este glosario como referencia para mantener consistencia en todas las línea
 - Ruido de producción (“[applause]”) → traduce si aparece literalmente.  
 - Inyecciones ajenas → reemplaza con “—” manteniendo índice.  
 
+Fragmentos o cortes antinaturales en una oración:
+- Si una línea en inglés contiene un fragmento aislado que claramente continúa en la línea siguiente (ej.: “My,” o “…of my arm”), tradúcelo también como fragmento en español.
+- Mantén la alineación 1:1:
+- englishTranscript[i] = fragmento → spanishTranscript[i] = fragmento equivalente en español (aunque quede incompleto).
+- englishTranscript[i+1] = continuación → spanishTranscript[i+1] = continuación equivalente.
+- No combines ni muevas contenido a otra línea.
+- Usa puntos suspensivos (…) o un guion largo (—) para reflejar la pausa o corte en español si es necesario.
+
+Ejemplo:
+
+englishTranscript[10] = "My,"
+englishTranscript[11] = "Arm thing, no more waking up with my arm asleep."
+
+Traducción:
+
+spanishTranscript[10] = "Mi…"
+spanishTranscript[11] = "El brazo, ya no me despertaba con el brazo dormido."
+
 ---
 
 12) Ejemplo de formato de salida
