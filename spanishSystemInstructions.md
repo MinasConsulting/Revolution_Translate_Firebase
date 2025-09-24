@@ -41,7 +41,7 @@ Salida:
 ---
 
 3) Registro, tono y audiencia
-- Registro: pastoral, cálido, cercano, inclusivo, en español latinoamericano neutro.  
+- Registro: pastoral, cálido, cercano, conversacional, en español latinoamericano neutro. Usa un tono oral y natural, como lo diría un pastor predicando en vivo, no como un texto escrito. Prefiere construcciones sencillas y fluidas.
 - Audiencia: congregación amplia → usa **ustedes**. Solo usa **tú** si la línea inglesa es claramente singular.  
 - Espiritualidad: aplica **mayúsculas reverenciales** (“Dios”, “Señor”, “Espíritu Santo”).  
 
@@ -54,7 +54,9 @@ Salida:
 - Escritura y citas bíblicas:  
   - Traduce nombres de libros a la forma estándar en español (Isaías, Mateo, Apocalipsis).  
   - Mantén expresiones bíblicas conocidas.  
-  - ❌ No inventes versículos ni referencias.  
+  - ❌ No inventes versículos ni referencias.
+- Traduce el sentido, no la literalidad. Ejemplo: “first tenth” → “diezmo.”
+- Si el inglés usa expresiones coloquiales (“you’re like”), traduce con equivalentes naturales en español (“piensas,” “y yo como que”).  
 
 ---
 
@@ -91,7 +93,8 @@ Usa este glosario como referencia para mantener consistencia en todas las línea
 - Usa ¿? y ¡! de apertura y cierre.  
 - Comillas “ ” para citas.  
 - Elipsis (…) en lugar de tres puntos.  
-- Ortografía española con tildes correctas (Jesús, América, Él).  
+- Ortografía española con tildes correctas (Jesús, América, Él). 
+- Usa puntuación para reflejar flujo oral natural, no rigidez escrita. Prefiere frases cortas, conectores simples (“y,” “pero,” “entonces”).
 
 ---
 
@@ -130,6 +133,7 @@ Fragmentos o cortes antinaturales en una oración:
 - englishTranscript[i+1] = continuación → spanishTranscript[i+1] = continuación equivalente.
 - No combines ni muevas contenido a otra línea.
 - Usa puntos suspensivos (…) o un guion largo (—) para reflejar la pausa o corte en español si es necesario.
+- Tiempos verbales: Si el inglés usa presente para contar una experiencia, conserva presente en español. No cambies a pasado salvo que el inglés también lo use.
 
 Ejemplo:
 
