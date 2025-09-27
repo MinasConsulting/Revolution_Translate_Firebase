@@ -53,6 +53,22 @@ def transcriptKickOff(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
     if not content_type or not content_type.startswith("video/"):
         print(f"This is not a video. ({content_type})")
         return
+    
+    notificationRef = db.collection("params").document("notification")
+    notificationDoc = notificationRef.get()
+    notificationDict = notificationDoc.to_dict()
+    
+    message = Mail(
+                from_email = "RevolutionTranslateBot@minas.consulting",
+                to_emails = notificationDict['upload'],
+                subject=f'Video upload complete {file}',
+                plain_text_content= f"Video upload complete {file}"
+            )
+
+    try:
+        sg.send(message)
+    except Exception as e:
+        print(e.message)
 
     video_client = videointelligence.VideoIntelligenceServiceClient()
     features = [videointelligence.Feature.SPEECH_TRANSCRIPTION]
