@@ -3,9 +3,9 @@
     import { onMount } from 'svelte';
 
     let videoInfoPromise = getVideos()
-    let selectedFile = null;
-    let uploadProgress = 0;
-    let fileName = '';
+    let selectedFile = $state(null);
+    let uploadProgress = $state(0);
+    let fileName = $state('');
     
     onMount(() => {
         let authenticated = localStorage.getItem('authenticated')
@@ -69,7 +69,7 @@
                 <img src="/Revolution Church - Full Horiztonal Black SM.png" alt="Revolution Church" class="logo">
                 <h1 class="page-title">Translation Portal</h1>
             </div>
-            <button on:click={handleLogout} class="logout-button">Sign Out</button>
+            <button onclick={handleLogout} class="logout-button">Sign Out</button>
         </div>
     </header>
 
@@ -82,7 +82,7 @@
                         type="file" 
                         id="file-upload"
                         accept="video/*" 
-                        on:change={handleFileChange}
+                        onchange={handleFileChange}
                         class="file-input"
                     >
                     <label for="file-upload" class="file-input-label">
@@ -94,7 +94,7 @@
                         {fileName || 'Choose Video File'}
                     </label>
                 </div>
-                <button on:click={handleUpload} class="primary" disabled={!selectedFile || uploadProgress > 0}>
+                <button onclick={handleUpload} class="primary" disabled={!selectedFile || uploadProgress > 0}>
                     Upload
                 </button>
             </div>
@@ -105,7 +105,7 @@
                         <div class="progress-fill" style="width: {uploadProgress}%"></div>
                     </div>
                     <p class="progress-text">Uploading... {uploadProgress}%</p>
-                    <button on:click={handleCancel} class="cancel-button">Cancel Upload</button>
+                    <button onclick={handleCancel} class="cancel-button">Cancel Upload</button>
                 </div>
             {:else if uploadProgress === 100}
                 <div class="upload-status success">
@@ -135,7 +135,7 @@
                             <a 
                                 class="edit-button button primary"
                                 href={`/englishTranscript/${videoID}`} 
-                                on:click={() => {localStorage.setItem('videoName', value.videoName);}}>
+                                onclick={() => {localStorage.setItem('videoName', value.videoName);}}>
                                 Edit Transcript
                             </a>
                         </div>

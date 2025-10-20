@@ -7,23 +7,23 @@
     import { englishTranscript, spanishTranscript } from '../../../utils/stores.js';
 
 	let videoID = $page.params.videoID;
-    let videoName = null;
+    let videoName = $state(null);
 	let player;
 	let tsClass = new transcriptClass(videoID)
 	let intervalId = null;
-	let englishVis = true;
-	let spanishVis = true;
-	let videoLink = null;
-    let translateLock = false;
-    let rewindSec = 10;
-    let fontSize = 16;
-    let centerFactor = 5;
-    let globalLock = false;
-    let isEditing = false;
+	let englishVis = $state(true);
+	let spanishVis = $state(true);
+	let videoLink = $state(null);
+    let translateLock = $state(false);
+    let rewindSec = $state(10);
+    let fontSize = $state(16);
+    let centerFactor = $state(5);
+    let globalLock = $state(false);
+    let isEditing = $state(false);
     let saveReadinProgress = false;
 
-    let downloadButtonText = 'Download Video'
-    let downloadButtonDisabled = false;
+    let downloadButtonText = $state('Download Video');
+    let downloadButtonDisabled = $state(false);
 
     const yellowColor = "#fcf756"
     const blueColor = "#7b9bd8"
@@ -301,7 +301,7 @@ async function handleEditComplete(event) {
 
     <header class="editor-header">
         <div class="header-left">
-            <button on:click={handleBackClick} class="back-button">
+            <button onclick={handleBackClick} class="back-button">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="19" y1="12" x2="5" y2="12"></line>
                     <polyline points="12 19 5 12 12 5"></polyline>
@@ -314,13 +314,13 @@ async function handleEditComplete(event) {
 
     <div class="toolbar">
         <div class="toolbar-section">
-            <button on:click={handleTranslateClick} class:disabled={translateLock} class="primary">
+            <button onclick={handleTranslateClick} class:disabled={translateLock} class="primary">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M5 8h14M9 21h6m-7-4 4.5-9 4.5 9M2 3h20"></path>
                 </svg>
                 Translate
             </button>
-            <button on:click={exportScriptClick} class:disabled={globalLock}>
+            <button onclick={exportScriptClick} class:disabled={globalLock}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -328,14 +328,14 @@ async function handleEditComplete(event) {
                 </svg>
                 Export
             </button>
-            <button on:click={() => handleDownload(videoName)} class:disabled={globalLock||downloadButtonDisabled}>
+            <button onclick={() => handleDownload(videoName)} class:disabled={globalLock||downloadButtonDisabled}>
                 {downloadButtonText}
             </button>
         </div>
 
         <div class="toolbar-section">
             {#if $spanishTranscript.length > 0}
-                <select id="textView" on:change={handleVisChange} class="view-select">
+                <select id="textView" onchange={handleVisChange} class="view-select">
                     <option value="Combined">Combined</option>
                     <option value="English Only">English Only</option>
                     <option value="Spanish Only">Spanish Only</option>
@@ -344,7 +344,7 @@ async function handleEditComplete(event) {
         </div>
 
         <div class="toolbar-section">
-            <button on:click={resetShading} title="Reset line highlighting">
+            <button onclick={resetShading} title="Reset line highlighting">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
                     <path d="M21 3v5h-5"></path>
@@ -361,8 +361,8 @@ async function handleEditComplete(event) {
                 </select>
             </div>
             <div class="control-group">
-                <button on:click={e => fontSize--} title="Decrease font size">A-</button>
-                <button on:click={e => fontSize++} title="Increase font size">A+</button>
+                <button onclick={() => fontSize--} title="Decrease font size">A-</button>
+                <button onclick={() => fontSize++} title="Increase font size">A+</button>
             </div>
         </div>
     </div>
@@ -378,7 +378,7 @@ async function handleEditComplete(event) {
                         <option value={i}>{i}s</option>
                     {/each}
                 </select>
-                <button on:click={rewindClick} class="rewind-button">
+                <button onclick={rewindClick} class="rewind-button">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="11 19 2 12 11 5 11 19"></polygon>
                         <polygon points="22 19 13 12 22 5 22 19"></polygon>
@@ -423,7 +423,7 @@ async function handleEditComplete(event) {
                                                 class="editable-text english" 
                                                 class:editable={!translateLock}
                                                 contentEditable="false" 
-                                                on:dblclick={handleDoubleClick} 
+                                                ondblclick={handleDoubleClick} 
                                                 data-docID={line.docID} 
                                                 data-start-sec={line.startSec} 
                                                 data-end-sec={line.endSec} 
@@ -439,7 +439,7 @@ async function handleEditComplete(event) {
                                                 class="editable-text spanish" 
                                                 class:editable={true}
                                                 contentEditable="false" 
-                                                on:dblclick={handleDoubleClick} 
+                                                ondblclick={handleDoubleClick} 
                                                 data-docID={$spanishTranscript[index].docID} 
                                                 data-start-sec={$spanishTranscript[index].startSec} 
                                                 data-end-sec={$spanishTranscript[index].endSec} 

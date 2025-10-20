@@ -1,9 +1,9 @@
 <script>
     import loginCreds from '../../.secrets/otherSecrets.json'
-    let username = '';
-    let password = '';
-    let isLoading = false;
-    let error = '';
+    let username = $state('');
+    let password = $state('');
+    let isLoading = $state(false);
+    let error = $state('');
 
     async function handleLogin() {
         error = '';
@@ -45,14 +45,14 @@
             </div>
         {/if}
 
-        <form on:submit|preventDefault={handleLogin} class="login-form">
+        <form onsubmit={(e) => {e.preventDefault(); handleLogin();}} class="login-form">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input 
                     id="username"
                     type="text" 
                     bind:value={username} 
-                    on:keypress={handleKeyPress}
+                    onkeypress={handleKeyPress}
                     placeholder="Enter your username"
                     disabled={isLoading}
                     autocomplete="username"
@@ -66,7 +66,7 @@
                     id="password"
                     type="password" 
                     bind:value={password}
-                    on:keypress={handleKeyPress}
+                    onkeypress={handleKeyPress}
                     placeholder="Enter your password"
                     disabled={isLoading}
                     autocomplete="current-password"
