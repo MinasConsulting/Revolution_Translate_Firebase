@@ -17,7 +17,6 @@
     let translateLock = $state(false);
     let rewindSec = $state(10);
     let fontSize = $state(16);
-    let centerFactor = $state(5);
     let globalLock = $state(false);
     let isEditing = $state(false);
     let saveReadinProgress = false;
@@ -25,8 +24,11 @@
     let downloadButtonText = $state('Download Video');
     let downloadButtonDisabled = $state(false);
 
-    const yellowColor = "#fcf756"
+    const yellowColor = "rgba(123, 155, 216, 0.2)"
     const blueColor = "#7b9bd8"
+
+    let lastTapTime = 0;
+    const doubleTapDelay = 300;
 
     onMount(async () => {
         englishTranscript.set([])
@@ -119,12 +121,6 @@
             else {
                 prevLine = $englishTranscript[0]
             }
-			if (i < centerFactor) {
-				scrollLine = $englishTranscript[0]
-			}
-			else {
-				scrollLine = $englishTranscript[i-centerFactor]
-			}
 			break;
 		}
 	}
@@ -133,12 +129,14 @@
         const transcriptBox = document.querySelector('.transcript-box');
 		if (transcriptBox) {
 			const transcriptLineElement = transcriptBox.querySelector(`li[data-start-sec="${transcriptLine.startSec}"]`);
-			const scrollLineElement = transcriptBox.querySelector(`li[data-start-sec="${scrollLine.startSec}"]`);
             const prevLineElement = transcriptBox.querySelector(`li[data-start-sec="${prevLine.startSec}"]`);
 
 			if (transcriptLineElement) {
-                if (prevLineElement && prevLineElement.style.backgroundColor == blueColor){
-                    prevLineElement.style.backgroundColor = yellowColor
+                if (prevLineElement && prevLineElement.style.backgroundColor) {
+                    const prevColor = prevLineElement.style.backgroundColor;
+                    if (prevColor !== 'transparent' && prevColor !== '' && prevColor !== yellowColor) {
+                        prevLineElement.style.backgroundColor = yellowColor;
+                    }
                 }
 
 				transcriptLineElement.style.backgroundColor = blueColor;
@@ -186,30 +184,35 @@
 	event.target.addEventListener('blur', handleEditComplete);
 	}
 
+  function handleTouchEnd(event) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTime;
+    
+    if (tapLength < doubleTapDelay && tapLength > 0) {
+        event.preventDefault();
+        handleDoubleClick(event);
+    }
+    lastTapTime = currentTime;
+  }
+
 async function handleEditComplete(event) {
     const startSec = parseFloat(event.target.dataset.startSec) 
     const endSec = parseFloat(event.target.dataset.endSec)
 
     event.target.contentEditable = "false"
 
-    player.currentTime(startSec)
-	player.play();
-
 	const newDocID = await saveChange(event,videoID)
     console.log(newDocID)
 
     const playPosition = startSec + (endSec-startSec)*newDocID.positionScale
-    if(playPosition !== startSec){
-        player.currentTime(playPosition)
-        player.play();
-    }
+    player.currentTime(playPosition)
+	player.play();
 
     if(newDocID.refresh) {
         isEditing = true;
         await tsClass.refreshTranscript()
         console.log("transcript refreshed")
     }
-    event.target.textContent = event.target.textContent
 
     await tick();
 	event.target.removeEventListener('blur', handleEditComplete);
@@ -353,14 +356,6 @@ async function handleEditComplete(event) {
                 </svg>
             </button>
             <div class="control-group">
-                <label for="centerFactor" class="control-label">Buffer</label>
-                <select id="centerFactor" bind:value={centerFactor}>
-                    {#each [...Array(9).keys()] as i}
-                        <option value={i}>{i}</option>
-                    {/each}
-                </select>
-            </div>
-            <div class="control-group">
                 <button onclick={() => fontSize--} title="Decrease font size">A-</button>
                 <button onclick={() => fontSize++} title="Increase font size">A+</button>
             </div>
@@ -423,7 +418,8 @@ async function handleEditComplete(event) {
                                                 class="editable-text english" 
                                                 class:editable={!translateLock}
                                                 contentEditable="false" 
-                                                ondblclick={handleDoubleClick} 
+                                                ondblclick={handleDoubleClick}
+                                                ontouchend={handleTouchEnd}
                                                 data-docID={line.docID} 
                                                 data-start-sec={line.startSec} 
                                                 data-end-sec={line.endSec} 
@@ -439,7 +435,8 @@ async function handleEditComplete(event) {
                                                 class="editable-text spanish" 
                                                 class:editable={true}
                                                 contentEditable="false" 
-                                                ondblclick={handleDoubleClick} 
+                                                ondblclick={handleDoubleClick}
+                                                ontouchend={handleTouchEnd}
                                                 data-docID={$spanishTranscript[index].docID} 
                                                 data-start-sec={$spanishTranscript[index].startSec} 
                                                 data-end-sec={$spanishTranscript[index].endSec} 
@@ -631,45 +628,46 @@ async function handleEditComplete(event) {
     .transcript-box {
         height: calc(100vh - 280px);
         overflow-y: auto;
-        padding: var(--spacing-md);
+        padding: var(--spacing-sm);
     }
 
     .transcript-list {
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-sm);
+        gap: 2px;
     }
 
     .transcript-item {
         list-style: none;
         transition: background-color var(--transition-base);
-        border-radius: var(--radius-md);
-        padding: var(--spacing-xs);
+        border-radius: var(--radius-sm);
+        padding: var(--spacing-xs) 2px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
     .transcript-line {
         display: flex;
-        gap: var(--spacing-md);
+        gap: var(--spacing-sm);
         align-items: flex-start;
     }
 
     .time-indicators {
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-xs);
+        gap: 2px;
         flex-shrink: 0;
     }
 
     .time-badge {
-        padding: var(--spacing-xs) var(--spacing-sm);
+        padding: 2px var(--spacing-xs);
         background-color: var(--color-surface);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-sm);
-        font-size: var(--font-size-xs);
+        font-size: 10px;
         font-family: var(--font-mono);
         color: var(--color-text-secondary);
         text-align: center;
-        min-width: 90px;
+        min-width: 80px;
         transition: all var(--transition-fast);
     }
 
@@ -688,16 +686,16 @@ async function handleEditComplete(event) {
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-sm);
+        gap: 2px;
         min-width: 0;
     }
 
     .editable-text {
-        padding: var(--spacing-sm) var(--spacing-md);
+        padding: var(--spacing-xs) var(--spacing-sm);
         background-color: var(--color-surface);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md);
-        line-height: var(--line-height-relaxed);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius-sm);
+        line-height: 1.4;
         word-wrap: break-word;
         transition: all var(--transition-fast);
     }

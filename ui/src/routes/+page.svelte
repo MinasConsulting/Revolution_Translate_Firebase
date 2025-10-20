@@ -127,48 +127,44 @@
 
         <div class="video-list-section">
             <h2 class="section-title">Videos</h2>
-            <div class="video-grid">
-                {#each [...videoInfo] as [videoID, value] (videoID)}
-                    <div class="video-card">
-                        <div class="video-card-header">
-                            <h3 class="video-name">{value.videoName}</h3>
-                            <a 
-                                class="edit-button button primary"
-                                href={`/englishTranscript/${videoID}`} 
-                                onclick={() => {localStorage.setItem('videoName', value.videoName);}}>
-                                Edit Transcript
-                            </a>
-                        </div>
-                        <div class="video-card-body">
-                            <div class="video-meta">
-                                <div class="meta-item">
-                                    <span class="meta-label">Length</span>
-                                    <span class="meta-value">{value.vidLength.endTime.slice(0,-4)}</span>
-                                </div>
-                                <div class="meta-item">
-                                    <span class="meta-label">Generated</span>
-                                    <span class="meta-value">{formatDate(value.publishTime)}</span>
-                                </div>
-                            </div>
-                            <div class="video-meta">
-                                <div class="meta-item">
-                                    <span class="meta-label">Last English Edit</span>
-                                    <span class="meta-value">{formatDate(value.englishMessageData.genTime)}</span>
-                                </div>
-                                <div class="meta-item">
-                                    <span class="meta-label">Last Spanish Edit</span>
-                                    <span class="meta-value">
-                                        {#if value.spanishMessageData}
-                                            {formatDate(value.spanishMessageData.genTime)}
-                                        {:else}
-                                            <span class="na">Not available</span>
-                                        {/if}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                {/each}
+            <div class="video-table-wrapper">
+                <table class="video-table">
+                    <thead>
+                        <tr>
+                            <th>Video Name</th>
+                            <th>Actions</th>
+                            <th>Length</th>
+                            <th>Generated Time</th>
+                            <th>Last English Edit</th>
+                            <th>Last Spanish Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {#each [...videoInfo] as [videoID, value] (videoID)}
+                            <tr class="video-row">
+                                <td class="video-name-cell">{value.videoName}</td>
+                                <td class="action-cell">
+                                    <a 
+                                        class="edit-button"
+                                        href={`/englishTranscript/${videoID}`} 
+                                        onclick={() => {localStorage.setItem('videoName', value.videoName);}}>
+                                        Edit
+                                    </a>
+                                </td>
+                                <td>{value.vidLength.endTime.slice(0,-4)}</td>
+                                <td>{formatDate(value.publishTime)}</td>
+                                <td>{formatDate(value.englishMessageData.genTime)}</td>
+                                <td>
+                                    {#if value.spanishMessageData}
+                                        {formatDate(value.spanishMessageData.genTime)}
+                                    {:else}
+                                        <span class="na">Not available</span>
+                                    {/if}
+                                </td>
+                            </tr>
+                        {/each}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -364,80 +360,82 @@
         margin-bottom: var(--spacing-2xl);
     }
 
-    .video-grid {
-        display: grid;
-        gap: var(--spacing-lg);
-        grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-    }
-
-    .video-card {
+    .video-table-wrapper {
         background-color: var(--color-surface-elevated);
         border: 1px solid var(--color-border);
         border-radius: var(--radius-lg);
         overflow: hidden;
-        transition: all var(--transition-fast);
     }
 
-    .video-card:hover {
-        border-color: var(--color-border-light);
-        box-shadow: var(--shadow-lg);
-        transform: translateY(-2px);
+    .video-table {
+        width: 100%;
+        border-collapse: collapse;
     }
 
-    .video-card-header {
-        padding: var(--spacing-lg);
+    .video-table thead {
         background-color: var(--color-surface);
         border-bottom: 1px solid var(--color-border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--spacing-md);
     }
 
-    .video-name {
-        font-size: var(--font-size-lg);
-        margin: 0;
-        word-break: break-word;
-        flex: 1;
-    }
-
-    .edit-button {
-        flex-shrink: 0;
-        padding: var(--spacing-sm) var(--spacing-md);
+    .video-table th {
+        padding: var(--spacing-md) var(--spacing-lg);
+        text-align: left;
         font-size: var(--font-size-sm);
-    }
-
-    .video-card-body {
-        padding: var(--spacing-lg);
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-md);
-    }
-
-    .video-meta {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: var(--spacing-md);
-    }
-
-    .meta-item {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-xs);
-    }
-
-    .meta-label {
-        font-size: var(--font-size-xs);
         font-weight: var(--font-weight-semibold);
-        color: var(--color-text-muted);
+        color: var(--color-text-secondary);
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
 
-    .meta-value {
+    .video-table tbody tr {
+        border-bottom: 1px solid var(--color-border);
+        transition: background-color var(--transition-fast);
+    }
+
+    .video-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .video-table tbody tr:hover {
+        background-color: var(--color-surface);
+    }
+
+    .video-table td {
+        padding: var(--spacing-md) var(--spacing-lg);
         font-size: var(--font-size-sm);
         color: var(--color-text);
+    }
+
+    .video-name-cell {
         font-weight: var(--font-weight-medium);
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .action-cell {
+        white-space: nowrap;
+    }
+
+    .edit-button {
+        display: inline-block;
+        padding: var(--spacing-xs) var(--spacing-md);
+        background-color: var(--color-accent);
+        color: var(--color-primary);
+        border: 1px solid var(--color-accent);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        text-decoration: none;
+        transition: all var(--transition-fast);
+    }
+
+    .edit-button:hover {
+        background-color: var(--color-accent-hover);
+        border-color: var(--color-accent-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
     }
 
     .na {
@@ -488,17 +486,17 @@
             font-size: var(--font-size-xl);
         }
 
-        .video-grid {
-            grid-template-columns: 1fr;
+        .video-table-wrapper {
+            overflow-x: auto;
         }
 
-        .video-card-header {
-            flex-direction: column;
-            align-items: stretch;
+        .video-table {
+            font-size: var(--font-size-xs);
         }
 
-        .edit-button {
-            width: 100%;
+        .video-table th,
+        .video-table td {
+            padding: var(--spacing-sm) var(--spacing-md);
         }
 
         .upload-controls {
@@ -516,8 +514,8 @@
             max-width: 140px;
         }
 
-        .video-meta {
-            grid-template-columns: 1fr;
+        .video-name-cell {
+            max-width: 150px;
         }
     }
 </style>
