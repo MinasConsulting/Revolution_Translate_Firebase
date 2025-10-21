@@ -453,10 +453,11 @@ async function handleEditComplete(event) {
 
 <style>
     .page-container {
-        min-height: 100vh;
+        height: 100vh;
         display: flex;
         flex-direction: column;
         background-color: var(--color-primary);
+        overflow: hidden;
     }
 
     .editor-header {
@@ -568,6 +569,8 @@ async function handleEditComplete(event) {
         max-width: 1800px;
         margin: 0 auto;
         width: 100%;
+        min-height: 0;
+        overflow: hidden;
     }
 
     .video-section {
@@ -617,12 +620,16 @@ async function handleEditComplete(event) {
         border-radius: var(--radius-lg);
         overflow: hidden;
         box-shadow: var(--shadow-md);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
     }
 
     .transcript-box {
-        height: calc(100vh - 280px);
+        flex: 1;
         overflow-y: auto;
         padding: var(--spacing-sm);
+        min-height: 0;
     }
 
     .transcript-list {
@@ -718,16 +725,29 @@ async function handleEditComplete(event) {
     }
 
     @media (max-width: 1200px) {
+        .page-container {
+            height: auto;
+            min-height: 100vh;
+            overflow: visible;
+        }
+
         .editor-content {
             flex-direction: column;
+            overflow: visible;
+            min-height: auto;
         }
 
         .video-section {
             flex: 0 0 auto;
         }
 
-        .transcript-box {
+        .transcript-section {
             height: 600px;
+            flex: none;
+        }
+
+        .transcript-box {
+            flex: 1;
         }
     }
 
@@ -758,7 +778,7 @@ async function handleEditComplete(event) {
             font-size: 10px;
         }
 
-        .transcript-box {
+        .transcript-section {
             height: 500px;
         }
     }
