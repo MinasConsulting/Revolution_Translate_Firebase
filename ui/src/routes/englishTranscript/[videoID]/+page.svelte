@@ -141,8 +141,8 @@
 
 				transcriptLineElement.style.backgroundColor = blueColor;
 
-				// Pixel-based centering: scroll so current line is vertically centered
-				const targetScrollTop = transcriptLineElement.offsetTop - (transcriptBox.clientHeight / 2 - transcriptLineElement.clientHeight / 2);
+				// Position current line at 40% from top (10% up from center) to show more upcoming transcript
+				const targetScrollTop = transcriptLineElement.offsetTop - (transcriptBox.clientHeight * 0.4 - transcriptLineElement.clientHeight / 2);
 				const scrollDistance = Math.abs(targetScrollTop - transcriptBox.scrollTop);
                 
                 if (!transcriptLine.lineRead && !saveReadinProgress){
