@@ -32,6 +32,12 @@
         }
     };
 
+    const handleReset = () => {
+        uploadProgress = 0;
+        selectedFile = null;
+        fileName = '';
+    };
+
     const handleCancel = () => {
         uploadProgress = -1
         cancelUpload()
@@ -113,10 +119,11 @@
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                     </svg>
-                    <div>
-                        <p class="success-title">Upload complete!</p>
-                        <p class="success-message">Video will be available in 15-30 minutes.</p>
+                    <div class="success-content">
+                        <p class="success-title">Video upload complete</p>
+                        <p class="success-message">Your video has been successfully uploaded and is being processed.</p>
                     </div>
+                    <button onclick={handleReset} class="done-button">Reset Form</button>
                 </div>
             {:else if uploadProgress === -1}
                 <div class="upload-status cancelled">
@@ -308,6 +315,28 @@
     .upload-status.success svg {
         color: var(--color-success);
         flex-shrink: 0;
+    }
+
+    .success-content {
+        flex: 1;
+    }
+
+    .done-button {
+        background-color: var(--color-success);
+        color: white;
+        border: none;
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        font-weight: var(--font-weight-semibold);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        white-space: nowrap;
+    }
+
+    .done-button:hover {
+        background-color: #45a049;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
     }
 
     .upload-status.cancelled {

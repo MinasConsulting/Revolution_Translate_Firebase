@@ -286,29 +286,25 @@ export async function uploadVideo(file, onProgress) {
 
   const storageRef = ref(storage, `videos/${file.name}`);
 
-  try {
-    // Include the metadata in the upload
+  return new Promise((resolve, reject) => {
     currentUploadTask = uploadBytesResumable(storageRef, file, metadata);
 
     currentUploadTask.on(
       "state_changed",
       (snapshot) => {
-        // Provide progress updates to the onProgress callback function
         const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        onProgress(progress.toFixed(2));
+        onProgress(Math.round(progress));
       },
       (error) => {
         console.error("Upload failed:", error);
-        throw error; // Re-throw the error for handling in the Svelte component
+        reject(error);
+      },
+      () => {
+        console.log("Upload complete");
+        resolve();
       }
     );
-
-    // Alternatively, you can await the completion without onProgress:
-    // await uploadTask;
-  } catch (error) {
-    console.error("Upload failed:", error);
-    throw error; // Re-throw the error for handling in the Svelte component
-  }
+  });
 }
 
 export function cancelUpload() {
