@@ -384,12 +384,6 @@ async function handleEditComplete(event) {
         </div>
 
         <div class="transcript-section">
-            {#if isEditing}
-                <div class="loading-spinner">
-                    <div class="spinner"></div>
-                </div>
-            {/if}
-            
             <div class="transcript-box">
                 {#if $englishTranscript.length > 0}
                     <ul class="transcript-list">
