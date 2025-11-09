@@ -84,6 +84,25 @@ Salida:
 - ❌ No mezcles material de otras líneas ni del bloque completo (A).  
 - Solo traduce lo que aparece en englishTranscript[i].
 
+🕊️ 5-bis) Seguridad y contexto (para evitar malinterpretaciones del filtro de contenido)
+	•	Este texto proviene de sermones cristianos, no de material violento ni gráfico.
+	•	Si una línea parece describir acciones físicas (“golpear”, “pegar”, “derribar”, etc.), interpreta el sentido metafórico o contextual (por ejemplo, “golpear la puerta”, “derribar muros espirituales”) y traduce de forma neutral y no violenta.
+	•	Nunca describas actos de violencia, daño físico, contenido sexual o situaciones personales sensibles; si algo suena ambiguo, suaviza la redacción sin alterar el sentido espiritual.
+	•	El propósito siempre es edificar, enseñar y animar, nunca detallar escenas negativas.
+	•	Si una línea pudiera activar un filtro automático, prioriza una traducción pastoral y simbólica.
+Ejemplo:
+	•	Inglés: “He hit the wall in frustration” → Español: “Se topó con un muro de frustración.”
+	•	Inglés: “They were beating the drums” → Español: “Estaban tocando los tambores.”
+
+🕊️ 5-ter) Redacción y omisión de contenido sensible
+- Si el texto original incluye escenas de violencia, guerra o muerte (por ejemplo, relatos del Antiguo Testamento como Sansón, David, etc.):
+  - **No las describas literalmente.**
+  - Sustituye el acto violento por una **descripción simbólica o genérica**.
+  - Usa verbos como “venció”, “derrotó”, “terminó la batalla”, “se cumplió el propósito”, o “el relato concluye ahí”.
+  - Si aun así percibes que una línea podría ser bloqueada, **omite o redacta la parte específica** y deja una nota segura entre paréntesis, por ejemplo:
+    > “(parte omitida por contenido sensible, el relato continúa con la victoria de Sansón)”.
+- No es necesario detallar ningún daño físico, muerte, ni descripción bélica.
+
 ---
 
 6) Glosario mínimo recomendado (consistencia obligatoria)

@@ -6,6 +6,7 @@ from firebase_admin import initialize_app, firestore, storage
 import os
 from datetime import datetime
 import json
+from json import JSONDecodeError
 from google.cloud import videointelligence
 from google.cloud.video import transcoder_v1
 from google.cloud.video.transcoder_v1.services.transcoder_service import (
@@ -403,8 +404,8 @@ def batchGPTtranslatorPoll(event: scheduler_fn.ScheduledEvent):
             message = Mail(
                 from_email = "RevolutionTranslateBot@minas.consulting",
                 to_emails = notificationDict['recipients'],
-                subject=f'Translation Ready for {videoInfo['videoName']}',
-                plain_text_content= f"Translation Ready for {videoInfo['videoName']}"
+                subject=f"Translation Ready for {videoInfo['videoName']}",
+                plain_text_content=f"Translation Ready for {videoInfo['videoName']}"
             )
 
             try:
@@ -415,40 +416,81 @@ def batchGPTtranslatorPoll(event: scheduler_fn.ScheduledEvent):
 
 def _batchGPTtranslatorCommit(batchReturns):
 
-    sorted_keys = sorted(batchReturns.keys(),
-                         key=lambda k: tuple(map(int, k.rsplit("_", 2)[-2:])))
+    # Sort chunk keys by their numeric start/end so we reassemble in order
+    sorted_keys = sorted(
+        batchReturns.keys(),
+        key=lambda k: tuple(map(int, k.rsplit("_", 2)[-2:]))
+    )
     videoID = sorted_keys[0].split("_")[0]
 
-    newScript = []
-    for val in sorted_keys:
-        newScript.extend(json.loads(batchReturns[val]['response']['body']['output'][1]['content'][0]['text'])['spanishTranscript'])
+    newScript: list[str] = []
 
+    for key in sorted_keys:
+        result_body = batchReturns[key].get('response', {}).get('body', {})
+
+        # Derive expected length from the custom_id suffix: <videoID>_<start>_<end>
+        try:
+            _, start_str, end_str = key.rsplit("_", 2)
+            expected_len = int(end_str) - int(start_str)
+        except Exception:
+            # Fallback if parsing fails
+            expected_len = 0
+
+        transcript_chunk: list[str] = []
+
+        # If the API marks the item incomplete (e.g., content_filter/length), pad with empties
+        status = result_body.get('status') or 'completed'
+        if status != 'completed':
+            transcript_chunk = [""] * max(expected_len, 0)
+        else:
+            # Try to parse the structured JSON text from the model
+            try:
+                text_blob = result_body['output'][1]['content'][0]['text']
+                parsed = json.loads(text_blob)
+                transcript_chunk = list(parsed.get('spanishTranscript', []))
+            except (KeyError, JSONDecodeError, TypeError):
+                # Any structural or decoding issue → fill with empty strings
+                transcript_chunk = [""] * max(expected_len, 0)
+
+        # Normalize length strictly to expected_len (pad/truncate)
+        if expected_len > 0:
+            if len(transcript_chunk) < expected_len:
+                transcript_chunk.extend([""] * (expected_len - len(transcript_chunk)))
+            elif len(transcript_chunk) > expected_len:
+                transcript_chunk = transcript_chunk[:expected_len]
+
+        newScript.extend(transcript_chunk)
+
+    # Fetch corresponding English transcript for timing/ids
     engTranscript = _getTranscript(videoID)
     engTranscript = engTranscript['englishTranscript']
 
     batch = db.batch()
-    dataDict = {'SRTID':0,
-            'startTime':'',
-            'endTime':'',
-            'genTime':'',
-            'text':'',
-            'genUser':'',
-            'currentEdit':True,
-            'genUser':'gptTranslate',
-            'genModel':"gpt5"}
-    
+    dataDict = {
+        'SRTID': 0,
+        'startTime': '',
+        'endTime': '',
+        'genTime': '',
+        'text': '',
+        'genUser': '',
+        'currentEdit': True,
+        'genUser': 'gptTranslate',
+        'genModel': 'gpt5'
+    }
+
     for i, line in enumerate(engTranscript):
         dataDict['SRTID'] = line['SRTID']
         dataDict['startTime'] = line['startTime']
         dataDict['endTime'] = line['endTime']
-        dataDict['text'] = newScript[i]
+        # Guard against index mismatch; default to empty string if missing
+        dataDict['text'] = newScript[i] if i < len(newScript) else ""
         dataDict['genTime'] = datetime.now()
         dataDict['parentEnglish'] = line['docID']
         dataDict['startSec'] = line['startSec']
         dataDict['endSec'] = line['endSec']
 
         doc_ref = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
-        batch.set(doc_ref,dataDict.copy())
+        batch.set(doc_ref, dataDict.copy())
 
     batch.commit()
 
