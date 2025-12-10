@@ -788,3 +788,110 @@ def _textToSentences(originText,newText):
         
 
     return newTextSentences
+
+
+@https_fn.on_call()
+def shiftSpanishTranscript(req: https_fn.CallableRequest):
+    try:
+        data = req.data or {}
+        videoID = data["videoID"]
+        direction = data["direction"]
+        startIndex = data.get("startIndex", 0)
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required fields: videoID, direction"
+        )
+    
+    if direction not in ["up", "down"]:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Direction must be 'up' or 'down'"
+        )
+
+    transcriptData = _getTranscript(videoID)
+    englishData = transcriptData.get('englishTranscript', [])
+    spanishData = transcriptData.get('spanishTranscript', [])
+
+    if len(spanishData) == 0:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
+            message="No Spanish transcript exists"
+        )
+
+    if len(englishData) != len(spanishData):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
+            message="Transcript length mismatch"
+        )
+
+    if startIndex < 0 or startIndex >= len(spanishData):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Invalid startIndex"
+        )
+
+    batch = db.batch()
+    genTime = datetime.now()
+
+    for i, spanishLine in enumerate(spanishData):
+        oldDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document(spanishLine['docID'])
+        batch.update(oldDocRef, {"currentEdit": False})
+
+    if direction == "down":
+        for i, spanishLine in enumerate(spanishData):
+            newEnglishLine = englishData[i]
+            
+            if i < startIndex:
+                newText = spanishData[i]['text']
+            elif i == startIndex:
+                newText = ""
+            else:
+                newText = spanishData[i - 1]['text']
+
+            newDoc = {
+                'SRTID': newEnglishLine['SRTID'],
+                'startTime': newEnglishLine['startTime'],
+                'endTime': newEnglishLine['endTime'],
+                'startSec': newEnglishLine['startSec'],
+                'endSec': newEnglishLine['endSec'],
+                'text': newText,
+                'genTime': genTime,
+                'genUser': 'shiftSpanishTranscript',
+                'currentEdit': True,
+                'parentEnglish': newEnglishLine['docID']
+            }
+
+            newDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
+            batch.set(newDocRef, newDoc)
+
+    else:
+        for i, spanishLine in enumerate(spanishData):
+            newEnglishLine = englishData[i]
+
+            if i < startIndex:
+                newText = spanishData[i]['text']
+            elif i == len(spanishData) - 1:
+                newText = ""
+            else:
+                newText = spanishData[i + 1]['text']
+
+            newDoc = {
+                'SRTID': newEnglishLine['SRTID'],
+                'startTime': newEnglishLine['startTime'],
+                'endTime': newEnglishLine['endTime'],
+                'startSec': newEnglishLine['startSec'],
+                'endSec': newEnglishLine['endSec'],
+                'text': newText,
+                'genTime': genTime,
+                'genUser': 'shiftSpanishTranscript',
+                'currentEdit': True,
+                'parentEnglish': newEnglishLine['docID']
+            }
+
+            newDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
+            batch.set(newDocRef, newDoc)
+
+    batch.commit()
+
+    return {"ok": True, "direction": direction, "startIndex": startIndex}

@@ -23,6 +23,7 @@
 
     let downloadButtonText = $state('Download Video');
     let downloadButtonDisabled = $state(false);
+    let shiftInProgress = $state(false);
 
     const yellowColor = "rgba(123, 155, 216, 0.2)"
     const blueColor = "#7b9bd8"
@@ -291,6 +292,26 @@ async function handleEditComplete(event) {
     function handleBackClick() {
         window.location.href = '/';
     }
+
+    async function handleShiftSpanish(direction, startIndex = 0) {
+        if (shiftInProgress || $spanishTranscript.length === 0) return;
+        
+        const fromLine = startIndex > 0 ? ` from line ${startIndex + 1}` : '';
+        const confirmMsg = direction === 'up' 
+            ? `Shift Spanish transcript UP${fromLine}? The last Spanish line will become empty.`
+            : `Shift Spanish transcript DOWN${fromLine}? Line ${startIndex + 1} will become empty.`;
+        
+        if (!window.confirm(confirmMsg)) return;
+        
+        shiftInProgress = true;
+        try {
+            await tsClass.shiftSpanishTranscript(direction, startIndex);
+        } catch (error) {
+            console.error('Shift failed:', error);
+            alert('Failed to shift transcript. Please try again.');
+        }
+        shiftInProgress = false;
+    }
 </script>
 
 <svelte:head>
@@ -343,6 +364,19 @@ async function handleEditComplete(event) {
                     <option value="English Only">English Only</option>
                     <option value="Spanish Only">Spanish Only</option>
                 </select>
+                <div class="control-group shift-controls">
+                    <span class="control-label">Shift Spanish:</span>
+                    <button onclick={() => handleShiftSpanish('up')} disabled={shiftInProgress} title="Shift Spanish transcript up one line" aria-label="Shift Spanish transcript up">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="18 15 12 9 6 15"></polyline>
+                        </svg>
+                    </button>
+                    <button onclick={() => handleShiftSpanish('down')} disabled={shiftInProgress} title="Shift Spanish transcript down one line" aria-label="Shift Spanish transcript down">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                </div>
             {/if}
         </div>
 
@@ -424,20 +458,42 @@ async function handleEditComplete(event) {
                                             </div>
                                         {/if}
                                         {#if spanishVis && $spanishTranscript.length > 0 && $spanishTranscript.length === $englishTranscript.length}
-                                            <div 
-                                                data-placeholder="Insert text..." 
-                                                class="editable-text spanish" 
-                                                class:editable={true}
-                                                contentEditable="false" 
-                                                ondblclick={handleDoubleClick}
-                                                ontouchend={handleTouchEnd}
-                                                data-docID={$spanishTranscript[index].docID} 
-                                                data-start-sec={$spanishTranscript[index].startSec} 
-                                                data-end-sec={$spanishTranscript[index].endSec} 
-                                                data-language="spanishTranscript" 
-                                                data-is-placeholder={!$spanishTranscript[index].text} 
-                                                style="font-size: {fontSize}px"> 
-                                                {$spanishTranscript[index].text}
+                                            <div class="spanish-line-wrapper">
+                                                <div 
+                                                    data-placeholder="Insert text..." 
+                                                    class="editable-text spanish" 
+                                                    class:editable={true}
+                                                    contentEditable="false" 
+                                                    ondblclick={handleDoubleClick}
+                                                    ontouchend={handleTouchEnd}
+                                                    data-docID={$spanishTranscript[index].docID} 
+                                                    data-start-sec={$spanishTranscript[index].startSec} 
+                                                    data-end-sec={$spanishTranscript[index].endSec} 
+                                                    data-language="spanishTranscript" 
+                                                    data-is-placeholder={!$spanishTranscript[index].text} 
+                                                    style="font-size: {fontSize}px"> 
+                                                    {$spanishTranscript[index].text}
+                                                </div>
+                                                <div class="line-shift-buttons">
+                                                    <button 
+                                                        onclick={() => handleShiftSpanish('up', index)} 
+                                                        disabled={shiftInProgress}
+                                                        aria-label="Shift up from this line"
+                                                        title="Shift up from here">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <polyline points="18 15 12 9 6 15"></polyline>
+                                                        </svg>
+                                                    </button>
+                                                    <button 
+                                                        onclick={() => handleShiftSpanish('down', index)} 
+                                                        disabled={shiftInProgress}
+                                                        aria-label="Shift down from this line"
+                                                        title="Shift down from here">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             </div>
                                         {/if}
                                     </div>
@@ -559,6 +615,59 @@ async function handleEditComplete(event) {
 
     .view-select {
         padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .shift-controls {
+        gap: var(--spacing-xs);
+    }
+
+    .shift-controls button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .spanish-line-wrapper {
+        display: flex;
+        align-items: stretch;
+        gap: 4px;
+    }
+
+    .spanish-line-wrapper .editable-text {
+        flex: 1;
+    }
+
+    .line-shift-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        opacity: 0.4;
+        transition: opacity var(--transition-fast);
+    }
+
+    .spanish-line-wrapper:hover .line-shift-buttons {
+        opacity: 1;
+    }
+
+    .line-shift-buttons button {
+        padding: 2px 4px;
+        background-color: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition-fast);
+    }
+
+    .line-shift-buttons button:hover:not(:disabled) {
+        background-color: var(--color-accent);
+        border-color: var(--color-accent);
+    }
+
+    .line-shift-buttons button:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
     }
 
     .editor-content {
