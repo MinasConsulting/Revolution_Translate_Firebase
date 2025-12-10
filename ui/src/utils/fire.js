@@ -25,6 +25,7 @@ const deepLTranslate = httpsCallable(functions, 'deepLTranslate');
 const gptTranslate = httpsCallable(functions, 'gptTranslate',{timeout: 300000});
 const getTranscriptFunc = httpsCallable(functions, 'getTranscript');
 const saveChangeCall = httpsCallable(functions, 'saveChange')
+const shiftSpanishTranscriptCall = httpsCallable(functions, 'shiftSpanishTranscript')
 
 let currentUploadTask = null;
 
@@ -152,6 +153,11 @@ export class transcriptClass {
     spanishTranscript.set(result.data)
 
 }
+
+  async shiftSpanishTranscript(direction, startIndex = 0) {
+    await shiftSpanishTranscriptCall({ videoID: this.videoID, direction, startIndex })
+    await this.refreshTranscript()
+  }
 }
 
 export async function getVideos() {
