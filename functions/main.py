@@ -644,9 +644,35 @@ def saveChange(req: https_fn.CallableRequest):
         )
     
     originText_ref = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document(data['originDocID'])
-    originText_results = originText_ref.get()
-    originTextDict = originText_results.to_dict()
-    originTextDict['parentDoc'] = originText_results.id
+    
+    @firestore.transactional
+    def claim_document(transaction):
+        originText_results = originText_ref.get(transaction=transaction)
+        
+        if not originText_results.exists:
+            return None, "not_found"
+        
+        originTextDict = originText_results.to_dict()
+        
+        if not originTextDict.get('currentEdit', False):
+            return None, "already_processed"
+        
+        transaction.update(originText_ref, {"currentEdit": False})
+        originTextDict['parentDoc'] = originText_results.id
+        return originTextDict, "claimed"
+    
+    transaction = db.transaction()
+    originTextDict, status = claim_document(transaction)
+    
+    if status == "not_found":
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Origin document not found"
+        )
+    
+    if status == "already_processed":
+        print(f"Duplicate request ignored - document {data['originDocID']} already processed")
+        return {"ok": True, "duplicate": True}
 
     newTextSentences = _textToSentences(originTextDict['text'],data['newText'])
 
