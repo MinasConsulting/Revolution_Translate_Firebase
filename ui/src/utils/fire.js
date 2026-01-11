@@ -26,6 +26,8 @@ const gptTranslate = httpsCallable(functions, 'gptTranslate',{timeout: 300000});
 const getTranscriptFunc = httpsCallable(functions, 'getTranscript');
 const saveChangeCall = httpsCallable(functions, 'saveChange')
 const shiftSpanishTranscriptCall = httpsCallable(functions, 'shiftSpanishTranscript')
+const renameVideoCall = httpsCallable(functions, 'renameVideo')
+const deleteVideoCall = httpsCallable(functions, 'deleteVideo')
 
 let currentUploadTask = null;
 
@@ -319,4 +321,14 @@ export function cancelUpload() {
     currentUploadTask = null;
     console.log("Upload canceled");
   }
+}
+
+export async function renameVideo(videoID, newName) {
+  const result = await renameVideoCall({ videoID, newName });
+  return result.data;
+}
+
+export async function deleteVideo(videoID) {
+  const result = await deleteVideoCall({ videoID });
+  return result.data;
 }

@@ -1,11 +1,18 @@
 <script>
-    import { getVideos, uploadVideo, cancelUpload } from '../utils/fire.js';
+    import { getVideos, uploadVideo, cancelUpload, renameVideo, deleteVideo } from '../utils/fire.js';
     import { onMount } from 'svelte';
 
-    let videoInfoPromise = getVideos()
+    let videoInfoPromise = $state(getVideos());
     let selectedFile = $state(null);
     let uploadProgress = $state(0);
     let fileName = $state('');
+    
+    let showRenameModal = $state(false);
+    let showDeleteModal = $state(false);
+    let selectedVideoID = $state(null);
+    let selectedVideoName = $state('');
+    let newVideoName = $state('');
+    let isProcessing = $state(false);
     
     onMount(() => {
         let authenticated = localStorage.getItem('authenticated')
@@ -59,6 +66,59 @@
     function handleLogout() {
         localStorage.removeItem('authenticated');
         window.location.href = '/login';
+    }
+
+    function openRenameModal(videoID, videoName) {
+        selectedVideoID = videoID;
+        selectedVideoName = videoName;
+        newVideoName = videoName;
+        showRenameModal = true;
+    }
+
+    function openDeleteModal(videoID, videoName) {
+        selectedVideoID = videoID;
+        selectedVideoName = videoName;
+        showDeleteModal = true;
+    }
+
+    function closeModals() {
+        showRenameModal = false;
+        showDeleteModal = false;
+        selectedVideoID = null;
+        selectedVideoName = '';
+        newVideoName = '';
+    }
+
+    async function handleRename() {
+        if (!newVideoName.trim() || newVideoName === selectedVideoName) {
+            closeModals();
+            return;
+        }
+        isProcessing = true;
+        try {
+            await renameVideo(selectedVideoID, newVideoName);
+            videoInfoPromise = getVideos();
+            closeModals();
+        } catch (error) {
+            console.error('Rename failed:', error);
+            alert('Failed to rename video');
+        } finally {
+            isProcessing = false;
+        }
+    }
+
+    async function handleDelete() {
+        isProcessing = true;
+        try {
+            await deleteVideo(selectedVideoID);
+            videoInfoPromise = getVideos();
+            closeModals();
+        } catch (error) {
+            console.error('Delete failed:', error);
+            alert('Failed to delete video');
+        } finally {
+            isProcessing = false;
+        }
     }
 </script>
 
@@ -157,6 +217,16 @@
                                         onclick={() => {localStorage.setItem('videoName', value.videoName);}}>
                                         Edit
                                     </a>
+                                    <button 
+                                        class="rename-button"
+                                        onclick={() => openRenameModal(videoID, value.videoName)}>
+                                        Rename
+                                    </button>
+                                    <button 
+                                        class="delete-button"
+                                        onclick={() => openDeleteModal(videoID, value.videoName)}>
+                                        Delete
+                                    </button>
                                 </td>
                                 <td>{value.vidLength.endTime.slice(0,-4)}</td>
                                 <td>{formatDate(value.publishTime)}</td>
@@ -186,6 +256,47 @@
         <p class="error-message">{error.message}</p>
     </div>
 {/await}
+
+{#if showRenameModal}
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div class="modal-overlay" onclick={closeModals}>
+        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rename-title" onclick={(e) => e.stopPropagation()}>
+            <h3 id="rename-title" class="modal-title">Rename Video</h3>
+            <p class="modal-subtitle">Current name: {selectedVideoName}</p>
+            <input 
+                type="text" 
+                class="modal-input"
+                bind:value={newVideoName}
+                placeholder="Enter new name"
+            />
+            <div class="modal-actions">
+                <button class="modal-cancel" onclick={closeModals} disabled={isProcessing}>Cancel</button>
+                <button class="modal-confirm" onclick={handleRename} disabled={isProcessing}>
+                    {isProcessing ? 'Renaming...' : 'Rename'}
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
+
+{#if showDeleteModal}
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div class="modal-overlay" onclick={closeModals}>
+        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="delete-title" onclick={(e) => e.stopPropagation()}>
+            <h3 id="delete-title" class="modal-title">Delete Video</h3>
+            <p class="modal-warning">Are you sure you want to delete "{selectedVideoName}"?</p>
+            <p class="modal-warning-sub">This will permanently delete the video, transcripts, and all associated data.</p>
+            <div class="modal-actions">
+                <button class="modal-cancel" onclick={closeModals} disabled={isProcessing}>Cancel</button>
+                <button class="modal-delete" onclick={handleDelete} disabled={isProcessing}>
+                    {isProcessing ? 'Deleting...' : 'Delete'}
+                </button>
+            </div>
+        </div>
+    </div>
+{/if}
 
 <style>
     :global(body) {
@@ -465,6 +576,156 @@
         border-color: var(--color-accent-hover);
         transform: translateY(-1px);
         box-shadow: var(--shadow-sm);
+    }
+
+    .rename-button,
+    .delete-button {
+        display: inline-block;
+        padding: var(--spacing-xs) var(--spacing-md);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-xs);
+        font-weight: var(--font-weight-semibold);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        margin-left: var(--spacing-xs);
+    }
+
+    .rename-button {
+        background-color: transparent;
+        color: var(--color-text-secondary);
+        border: 1px solid var(--color-border);
+    }
+
+    .rename-button:hover {
+        background-color: var(--color-surface);
+        border-color: var(--color-text-secondary);
+    }
+
+    .delete-button {
+        background-color: transparent;
+        color: var(--color-error);
+        border: 1px solid var(--color-error);
+    }
+
+    .delete-button:hover {
+        background-color: rgba(244, 67, 54, 0.1);
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: var(--z-modal, 1000);
+    }
+
+    .modal {
+        background-color: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-xl);
+        min-width: 400px;
+        max-width: 90vw;
+    }
+
+    .modal-title {
+        margin: 0 0 var(--spacing-md) 0;
+        font-size: var(--font-size-xl);
+    }
+
+    .modal-subtitle {
+        color: var(--color-text-secondary);
+        margin-bottom: var(--spacing-md);
+    }
+
+    .modal-warning {
+        color: var(--color-error);
+        font-weight: var(--font-weight-medium);
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .modal-warning-sub {
+        color: var(--color-text-secondary);
+        font-size: var(--font-size-sm);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .modal-input {
+        width: 100%;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background-color: var(--color-surface);
+        color: var(--color-text);
+        font-size: var(--font-size-base);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .modal-input:focus {
+        outline: none;
+        border-color: var(--color-accent);
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--spacing-md);
+    }
+
+    .modal-cancel {
+        background-color: transparent;
+        color: var(--color-text-secondary);
+        border: 1px solid var(--color-border);
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+    }
+
+    .modal-cancel:hover:not(:disabled) {
+        background-color: var(--color-surface);
+    }
+
+    .modal-confirm {
+        background-color: var(--color-accent);
+        color: var(--color-primary);
+        border: none;
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-weight: var(--font-weight-semibold);
+        transition: all var(--transition-fast);
+    }
+
+    .modal-confirm:hover:not(:disabled) {
+        background-color: var(--color-accent-hover);
+    }
+
+    .modal-delete {
+        background-color: var(--color-error);
+        color: white;
+        border: none;
+        padding: var(--spacing-sm) var(--spacing-lg);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-weight: var(--font-weight-semibold);
+        transition: all var(--transition-fast);
+    }
+
+    .modal-delete:hover:not(:disabled) {
+        background-color: #d32f2f;
+    }
+
+    .modal-cancel:disabled,
+    .modal-confirm:disabled,
+    .modal-delete:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 
     .na {
