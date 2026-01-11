@@ -817,6 +817,102 @@ def _textToSentences(originText,newText):
 
 
 @https_fn.on_call()
+def renameVideo(req: https_fn.CallableRequest):
+    try:
+        data = req.data or {}
+        videoID = data["videoID"]
+        newName = data["newName"]
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required fields: videoID, newName"
+        )
+    
+    if not newName or not newName.strip():
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="New name cannot be empty"
+        )
+
+    docRef = db.collection("messageVideos").document(videoID)
+    doc = docRef.get()
+    
+    if not doc.exists:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Video not found"
+        )
+
+    docRef.update({"videoName": newName.strip()})
+    
+    return {"ok": True, "videoID": videoID, "newName": newName.strip()}
+
+
+@https_fn.on_call()
+def deleteVideo(req: https_fn.CallableRequest):
+    try:
+        data = req.data or {}
+        videoID = data["videoID"]
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required field: videoID"
+        )
+
+    docRef = db.collection("messageVideos").document(videoID)
+    doc = docRef.get()
+    
+    if not doc.exists:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Video not found"
+        )
+
+    videoData = doc.to_dict()
+    videoName = videoData.get("videoName", "")
+    videoLink = videoData.get("videoLink", "")
+
+    bucket = storage.bucket()
+
+    if videoName:
+        videoBlob = bucket.blob(f"videos/{videoName}")
+        if videoBlob.exists():
+            videoBlob.delete()
+
+    if videoLink and videoLink.startswith("gs://"):
+        transcodedPath = videoLink.replace(f"gs://{bucket.name}/", "")
+        transcodedFolder = "/".join(transcodedPath.split("/")[:-1])
+        blobs = bucket.list_blobs(prefix=transcodedFolder)
+        for blob in blobs:
+            blob.delete()
+
+    baseName = videoName.rsplit(".", 1)[0] if "." in videoName else videoName
+    transcriptBlob = bucket.blob(f"transcriptComplete/{baseName}.json")
+    if transcriptBlob.exists():
+        transcriptBlob.delete()
+
+    subcollections = ["englishTranscript", "spanishTranscript", "words"]
+    for subcol in subcollections:
+        subcolRef = docRef.collection(subcol)
+        docs = subcolRef.stream()
+        batch = db.batch()
+        count = 0
+        for subdoc in docs:
+            batch.delete(subdoc.reference)
+            count += 1
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+        if count > 0:
+            batch.commit()
+
+    docRef.delete()
+
+    return {"ok": True, "videoID": videoID}
+
+
+@https_fn.on_call()
 def shiftSpanishTranscript(req: https_fn.CallableRequest):
     try:
         data = req.data or {}
