@@ -171,6 +171,7 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
 
     root_doc_ref.set({
         'videoName': videoName,
+        'originalFileName': videoName,
         'publishTime': genTime,
         'videoLink': videoLink
     })
@@ -644,9 +645,35 @@ def saveChange(req: https_fn.CallableRequest):
         )
     
     originText_ref = db.collection("messageVideos").document(data['videoID']).collection(data['langSource']).document(data['originDocID'])
-    originText_results = originText_ref.get()
-    originTextDict = originText_results.to_dict()
-    originTextDict['parentDoc'] = originText_results.id
+    
+    @firestore.transactional
+    def claim_document(transaction):
+        originText_results = originText_ref.get(transaction=transaction)
+        
+        if not originText_results.exists:
+            return None, "not_found"
+        
+        originTextDict = originText_results.to_dict()
+        
+        if not originTextDict.get('currentEdit', False):
+            return None, "already_processed"
+        
+        transaction.update(originText_ref, {"currentEdit": False})
+        originTextDict['parentDoc'] = originText_results.id
+        return originTextDict, "claimed"
+    
+    transaction = db.transaction()
+    originTextDict, status = claim_document(transaction)
+    
+    if status == "not_found":
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Origin document not found"
+        )
+    
+    if status == "already_processed":
+        print(f"Duplicate request ignored - document {data['originDocID']} already processed")
+        return {"ok": True, "duplicate": True}
 
     newTextSentences = _textToSentences(originTextDict['text'],data['newText'])
 
@@ -788,3 +815,206 @@ def _textToSentences(originText,newText):
         
 
     return newTextSentences
+
+
+@https_fn.on_call()
+def renameVideo(req: https_fn.CallableRequest):
+    try:
+        data = req.data or {}
+        videoID = data["videoID"]
+        newName = data["newName"]
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required fields: videoID, newName"
+        )
+    
+    if not newName or not newName.strip():
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="New name cannot be empty"
+        )
+
+    docRef = db.collection("messageVideos").document(videoID)
+    doc = docRef.get()
+    
+    if not doc.exists:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Video not found"
+        )
+
+    docRef.update({"videoName": newName.strip()})
+    
+    return {"ok": True, "videoID": videoID, "newName": newName.strip()}
+
+
+@https_fn.on_call()
+def deleteVideo(req: https_fn.CallableRequest):
+    try:
+        data = req.data or {}
+        videoID = data["videoID"]
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required field: videoID"
+        )
+
+    docRef = db.collection("messageVideos").document(videoID)
+    doc = docRef.get()
+    
+    if not doc.exists:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.NOT_FOUND,
+            message="Video not found"
+        )
+
+    videoData = doc.to_dict()
+    videoName = videoData.get("videoName", "")
+    videoLink = videoData.get("videoLink", "")
+
+    bucket = storage.bucket()
+
+    if videoName:
+        videoBlob = bucket.blob(f"videos/{videoName}")
+        if videoBlob.exists():
+            videoBlob.delete()
+
+    if videoLink and videoLink.startswith("gs://"):
+        transcodedPath = videoLink.replace(f"gs://{bucket.name}/", "")
+        transcodedFolder = "/".join(transcodedPath.split("/")[:-1])
+        blobs = bucket.list_blobs(prefix=transcodedFolder)
+        for blob in blobs:
+            blob.delete()
+
+    baseName = videoName.rsplit(".", 1)[0] if "." in videoName else videoName
+    transcriptBlob = bucket.blob(f"transcriptComplete/{baseName}.json")
+    if transcriptBlob.exists():
+        transcriptBlob.delete()
+
+    subcollections = ["englishTranscript", "spanishTranscript", "words"]
+    for subcol in subcollections:
+        subcolRef = docRef.collection(subcol)
+        docs = subcolRef.stream()
+        batch = db.batch()
+        count = 0
+        for subdoc in docs:
+            batch.delete(subdoc.reference)
+            count += 1
+            if count >= 400:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+        if count > 0:
+            batch.commit()
+
+    docRef.delete()
+
+    return {"ok": True, "videoID": videoID}
+
+
+@https_fn.on_call()
+def shiftSpanishTranscript(req: https_fn.CallableRequest):
+    try:
+        data = req.data or {}
+        videoID = data["videoID"]
+        direction = data["direction"]
+        startIndex = data.get("startIndex", 0)
+    except Exception:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Missing required fields: videoID, direction"
+        )
+    
+    if direction not in ["up", "down"]:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Direction must be 'up' or 'down'"
+        )
+
+    transcriptData = _getTranscript(videoID)
+    englishData = transcriptData.get('englishTranscript', [])
+    spanishData = transcriptData.get('spanishTranscript', [])
+
+    if len(spanishData) == 0:
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
+            message="No Spanish transcript exists"
+        )
+
+    if len(englishData) != len(spanishData):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
+            message="Transcript length mismatch"
+        )
+
+    if startIndex < 0 or startIndex >= len(spanishData):
+        raise https_fn.HttpsError(
+            code=https_fn.FunctionsErrorCode.INVALID_ARGUMENT,
+            message="Invalid startIndex"
+        )
+
+    batch = db.batch()
+    genTime = datetime.now()
+
+    for i, spanishLine in enumerate(spanishData):
+        oldDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document(spanishLine['docID'])
+        batch.update(oldDocRef, {"currentEdit": False})
+
+    if direction == "down":
+        for i, spanishLine in enumerate(spanishData):
+            newEnglishLine = englishData[i]
+            
+            if i < startIndex:
+                newText = spanishData[i]['text']
+            elif i == startIndex:
+                newText = ""
+            else:
+                newText = spanishData[i - 1]['text']
+
+            newDoc = {
+                'SRTID': newEnglishLine['SRTID'],
+                'startTime': newEnglishLine['startTime'],
+                'endTime': newEnglishLine['endTime'],
+                'startSec': newEnglishLine['startSec'],
+                'endSec': newEnglishLine['endSec'],
+                'text': newText,
+                'genTime': genTime,
+                'genUser': 'shiftSpanishTranscript',
+                'currentEdit': True,
+                'parentEnglish': newEnglishLine['docID']
+            }
+
+            newDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
+            batch.set(newDocRef, newDoc)
+
+    else:
+        for i, spanishLine in enumerate(spanishData):
+            newEnglishLine = englishData[i]
+
+            if i < startIndex:
+                newText = spanishData[i]['text']
+            elif i == len(spanishData) - 1:
+                newText = ""
+            else:
+                newText = spanishData[i + 1]['text']
+
+            newDoc = {
+                'SRTID': newEnglishLine['SRTID'],
+                'startTime': newEnglishLine['startTime'],
+                'endTime': newEnglishLine['endTime'],
+                'startSec': newEnglishLine['startSec'],
+                'endSec': newEnglishLine['endSec'],
+                'text': newText,
+                'genTime': genTime,
+                'genUser': 'shiftSpanishTranscript',
+                'currentEdit': True,
+                'parentEnglish': newEnglishLine['docID']
+            }
+
+            newDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
+            batch.set(newDocRef, newDoc)
+
+    batch.commit()
+
+    return {"ok": True, "direction": direction, "startIndex": startIndex}

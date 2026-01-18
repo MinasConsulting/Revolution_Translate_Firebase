@@ -25,6 +25,9 @@ const deepLTranslate = httpsCallable(functions, 'deepLTranslate');
 const gptTranslate = httpsCallable(functions, 'gptTranslate',{timeout: 300000});
 const getTranscriptFunc = httpsCallable(functions, 'getTranscript');
 const saveChangeCall = httpsCallable(functions, 'saveChange')
+const shiftSpanishTranscriptCall = httpsCallable(functions, 'shiftSpanishTranscript')
+const renameVideoCall = httpsCallable(functions, 'renameVideo')
+const deleteVideoCall = httpsCallable(functions, 'deleteVideo')
 
 let currentUploadTask = null;
 
@@ -75,18 +78,43 @@ export class transcriptClass {
   //   }
   // }
 
-  async downloadVideo(videoName) {
-    console.log(`videos/${videoName}`);
-    const storageRef = ref(storage, `videos/${videoName}`);
+  async downloadVideo() {
+    let originalFileName = this.videoData.originalFileName;
+    
+    if (!originalFileName) {
+      const pathParts = this.videoData.videoLink.split('/');
+      const folderIndex = pathParts.indexOf('transcoded');
+      if (folderIndex !== -1 && folderIndex + 1 < pathParts.length) {
+        const baseName = pathParts[folderIndex + 1];
+        const extensions = ['.mp4', '.mov', '.MP4', '.MOV', '.m4v', '.avi'];
+        for (const ext of extensions) {
+          try {
+            const testRef = ref(storage, `videos/${baseName}${ext}`);
+            await getDownloadURL(testRef);
+            originalFileName = baseName + ext;
+            break;
+          } catch (e) {
+            continue;
+          }
+        }
+      }
+    }
+
+    if (!originalFileName) {
+      console.error("Could not determine original filename");
+      return false;
+    }
+
+    console.log(`videos/${originalFileName}`);
+    const storageRef = ref(storage, `videos/${originalFileName}`);
   
     try {
-      // Get the download URL from the Firebase storage reference
       const downloadURL = await getDownloadURL(storageRef);
+      const downloadName = this.videoData.videoName || originalFileName;
   
-      // Create a link element, set the href to the download URL, and trigger the download
       const link = document.createElement('a');
       link.href = downloadURL;
-      link.download = videoName;
+      link.download = downloadName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -152,6 +180,11 @@ export class transcriptClass {
     spanishTranscript.set(result.data)
 
 }
+
+  async shiftSpanishTranscript(direction, startIndex = 0) {
+    await shiftSpanishTranscriptCall({ videoID: this.videoID, direction, startIndex })
+    await this.refreshTranscript()
+  }
 }
 
 export async function getVideos() {
@@ -313,4 +346,14 @@ export function cancelUpload() {
     currentUploadTask = null;
     console.log("Upload canceled");
   }
+}
+
+export async function renameVideo(videoID, newName) {
+  const result = await renameVideoCall({ videoID, newName });
+  return result.data;
+}
+
+export async function deleteVideo(videoID) {
+  const result = await deleteVideoCall({ videoID });
+  return result.data;
 }
