@@ -78,18 +78,43 @@ export class transcriptClass {
   //   }
   // }
 
-  async downloadVideo(videoName) {
-    console.log(`videos/${videoName}`);
-    const storageRef = ref(storage, `videos/${videoName}`);
+  async downloadVideo() {
+    let originalFileName = this.videoData.originalFileName;
+    
+    if (!originalFileName) {
+      const pathParts = this.videoData.videoLink.split('/');
+      const folderIndex = pathParts.indexOf('transcoded');
+      if (folderIndex !== -1 && folderIndex + 1 < pathParts.length) {
+        const baseName = pathParts[folderIndex + 1];
+        const extensions = ['.mp4', '.mov', '.MP4', '.MOV', '.m4v', '.avi'];
+        for (const ext of extensions) {
+          try {
+            const testRef = ref(storage, `videos/${baseName}${ext}`);
+            await getDownloadURL(testRef);
+            originalFileName = baseName + ext;
+            break;
+          } catch (e) {
+            continue;
+          }
+        }
+      }
+    }
+
+    if (!originalFileName) {
+      console.error("Could not determine original filename");
+      return false;
+    }
+
+    console.log(`videos/${originalFileName}`);
+    const storageRef = ref(storage, `videos/${originalFileName}`);
   
     try {
-      // Get the download URL from the Firebase storage reference
       const downloadURL = await getDownloadURL(storageRef);
+      const downloadName = this.videoData.videoName || originalFileName;
   
-      // Create a link element, set the href to the download URL, and trigger the download
       const link = document.createElement('a');
       link.href = downloadURL;
-      link.download = videoName;
+      link.download = downloadName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
