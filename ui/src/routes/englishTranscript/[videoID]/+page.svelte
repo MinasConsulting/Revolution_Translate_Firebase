@@ -279,11 +279,11 @@ async function handleEditComplete(event) {
         }
     }
 
-    async function handleDownload(videoName) {
+    async function handleDownload() {
         downloadButtonText = 'Download in progress...';
         downloadButtonDisabled = true;
         
-        await tsClass.downloadVideo(videoName);
+        await tsClass.downloadVideo();
 
         downloadButtonText = 'Download Video';
         downloadButtonDisabled = false;
@@ -352,7 +352,7 @@ async function handleEditComplete(event) {
                 </svg>
                 Export
             </button>
-            <button onclick={() => handleDownload(videoName)} class:disabled={globalLock||downloadButtonDisabled}>
+            <button onclick={() => handleDownload()} class:disabled={globalLock||downloadButtonDisabled}>
                 {downloadButtonText}
             </button>
         </div>

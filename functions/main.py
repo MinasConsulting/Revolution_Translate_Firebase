@@ -172,6 +172,7 @@ def transcriptProcess(event: storage_fn.CloudEvent[storage_fn.StorageObjectData]
 
     root_doc_ref.set({
         'videoName': videoName,
+        'originalFileName': videoName,
         'publishTime': genTime,
         'videoLink': videoLink
     })
