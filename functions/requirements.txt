@@ -78,7 +78,7 @@ firebase-admin==7.1.0
     # via
     #   -r requirements.in
     #   firebase-functions
-firebase-functions==0.4.3
+firebase-functions==0.5.0
     # via -r requirements.in
 flask==3.1.2
     # via
