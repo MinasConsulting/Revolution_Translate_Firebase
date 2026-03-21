@@ -145,29 +145,29 @@ export class transcriptClass {
     
 
     // Detect sync Issues
-    console.log("English Length",this.englishTranscript.length)
-    console.log("Spanish Length",this.spanishTranscript.length)
+    // console.log("English Length",this.englishTranscript.length)
+    // console.log("Spanish Length",this.spanishTranscript.length)
 
-    for (let i = 0; i < this.englishTranscript.length; i++){
-      if (this.englishTranscript[i].docID !== this.spanishTranscript[i].parentEnglish) {
-        console.log("Out of sync")
-        console.log(this.englishTranscript[i])
-        console.log(this.spanishTranscript[i])
-        break
-      }
-    }
+    // for (let i = 0; i < this.englishTranscript.length; i++){
+    //   if (this.englishTranscript[i].docID !== this.spanishTranscript[i].parentEnglish) {
+    //     console.log("Out of sync")
+    //     console.log(this.englishTranscript[i])
+    //     console.log(this.spanishTranscript[i])
+    //     break
+    //   }
+    // }
 
-    Find last edited line
-    let genTime = this.englishTranscript[0].genTime
-    let maxIndex = 0
-    for (let i = 0; i < this.englishTranscript.length; i++){
-      if (this.englishTranscript[i].genTime > genTime){
-        maxIndex = i
-        genTime = this.englishTranscript[i].genTime
-      }
+    // Find last edited line
+    // let genTime = this.englishTranscript[0].genTime
+    // let maxIndex = 0
+    // for (let i = 0; i < this.englishTranscript.length; i++){
+    //   if (this.englishTranscript[i].genTime > genTime){
+    //     maxIndex = i
+    //     genTime = this.englishTranscript[i].genTime
+    //   }
 
-      }
-      console.log(this.englishTranscript[maxIndex])
+    //   }
+    //   console.log(this.englishTranscript[maxIndex])
 
     
     }
