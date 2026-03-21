@@ -319,7 +319,7 @@ def batchGPTtranslatorSubmit(videoID,language="spanish"):
             "method": "POST",
             "url": "/v1/responses",
             "body": {
-                "model": "gpt-5",
+                "model": "gpt-5.4",
                 "reasoning": {"effort": "medium"},
                 "input": [
                     {"role": "developer", "content": systemInstructions},
@@ -436,7 +436,7 @@ def _batchGPTtranslatorCommit(batchReturns):
             'genUser':'',
             'currentEdit':True,
             'genUser':'gptTranslate',
-            'genModel':"gpt5"}
+            'genModel':"gpt5.4"}
     
     for i, line in enumerate(engTranscript):
         dataDict['SRTID'] = line['SRTID']
@@ -467,7 +467,7 @@ def gptTranslate(req: https_fn.CallableRequest):
                               Please do not translate text that is enclosed by these characters <>.
                               For example, &lt;Revolution Church&gt; should not be translated.""".replace("\n","")
     
-    gptModel = "gpt-4o-mini"
+    gptModel = "gpt-5.4"
     
     try:
         data = req.data or {}
@@ -954,67 +954,57 @@ def shiftSpanishTranscript(req: https_fn.CallableRequest):
             message="Invalid startIndex"
         )
 
-    batch = db.batch()
-    genTime = datetime.now()
+    spanishCol = db.collection("messageVideos").document(videoID).collection("spanishTranscript")
 
-    for i, spanishLine in enumerate(spanishData):
-        oldDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document(spanishLine['docID'])
-        batch.update(oldDocRef, {"currentEdit": False})
+    @firestore.transactional
+    def perform_shift(transaction):
+        currentDocs = spanishCol.where("currentEdit", "==", True).order_by("startSec").get(transaction=transaction)
+        currentSpanish = [doc for doc in currentDocs]
 
-    if direction == "down":
-        for i, spanishLine in enumerate(spanishData):
-            newEnglishLine = englishData[i]
-            
-            if i < startIndex:
-                newText = spanishData[i]['text']
-            elif i == startIndex:
-                newText = ""
+        if len(currentSpanish) != len(englishData):
+            raise https_fn.HttpsError(
+                code=https_fn.FunctionsErrorCode.FAILED_PRECONDITION,
+                message=f"Transcript length mismatch inside transaction: english={len(englishData)}, spanish={len(currentSpanish)}"
+            )
+
+        spanishTexts = [doc.to_dict()['text'] for doc in currentSpanish]
+        genTime = datetime.now()
+
+        for doc in currentSpanish:
+            transaction.update(spanishCol.document(doc.id), {"currentEdit": False})
+
+        for i, englishLine in enumerate(englishData):
+            if direction == "down":
+                if i < startIndex:
+                    newText = spanishTexts[i]
+                elif i == startIndex:
+                    newText = ""
+                else:
+                    newText = spanishTexts[i - 1]
             else:
-                newText = spanishData[i - 1]['text']
+                if i < startIndex:
+                    newText = spanishTexts[i]
+                elif i == len(spanishTexts) - 1:
+                    newText = ""
+                else:
+                    newText = spanishTexts[i + 1]
 
             newDoc = {
-                'SRTID': newEnglishLine['SRTID'],
-                'startTime': newEnglishLine['startTime'],
-                'endTime': newEnglishLine['endTime'],
-                'startSec': newEnglishLine['startSec'],
-                'endSec': newEnglishLine['endSec'],
+                'SRTID': englishLine['SRTID'],
+                'startTime': englishLine['startTime'],
+                'endTime': englishLine['endTime'],
+                'startSec': englishLine['startSec'],
+                'endSec': englishLine['endSec'],
                 'text': newText,
                 'genTime': genTime,
                 'genUser': 'shiftSpanishTranscript',
                 'currentEdit': True,
-                'parentEnglish': newEnglishLine['docID']
+                'parentEnglish': englishLine['docID']
             }
 
-            newDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
-            batch.set(newDocRef, newDoc)
+            transaction.set(spanishCol.document(), newDoc)
 
-    else:
-        for i, spanishLine in enumerate(spanishData):
-            newEnglishLine = englishData[i]
-
-            if i < startIndex:
-                newText = spanishData[i]['text']
-            elif i == len(spanishData) - 1:
-                newText = ""
-            else:
-                newText = spanishData[i + 1]['text']
-
-            newDoc = {
-                'SRTID': newEnglishLine['SRTID'],
-                'startTime': newEnglishLine['startTime'],
-                'endTime': newEnglishLine['endTime'],
-                'startSec': newEnglishLine['startSec'],
-                'endSec': newEnglishLine['endSec'],
-                'text': newText,
-                'genTime': genTime,
-                'genUser': 'shiftSpanishTranscript',
-                'currentEdit': True,
-                'parentEnglish': newEnglishLine['docID']
-            }
-
-            newDocRef = db.collection("messageVideos").document(videoID).collection("spanishTranscript").document()
-            batch.set(newDocRef, newDoc)
-
-    batch.commit()
+    transaction = db.transaction()
+    perform_shift(transaction)
 
     return {"ok": True, "direction": direction, "startIndex": startIndex}
