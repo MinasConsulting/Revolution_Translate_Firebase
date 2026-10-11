@@ -5,6 +5,7 @@
 - **UI build**: `cd ui && npm run build`
 - **Firebase deploy**: `firebase deploy`
 - **Firebase emulators**: `firebase emulators:start`
+- **Storage lifecycle** (not deployed by `firebase deploy`): `gcloud storage buckets update gs://revolutiontranslate.appspot.com --lifecycle-file=storage.lifecycle.json` (dev: `gs://revolutiontranslate-dev.firebasestorage.app`)
 - **Python deps**: `cd functions && pip install -r requirements.txt`
 - **No test suite exists** - do not assume any testing framework
 
